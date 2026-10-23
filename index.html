@@ -1,1 +1,183 @@
+# ===== 1. 드라이브 연결 & 도구 불러오기 =====
+from google.colab import drive
+drive.mount('/content/drive')
 
+import os, re, glob, base64, getpass, unicodedata
+import pandas as pd
+import numpy as np
+import requests
+!pip install folium xlrd -q
+import folium
+from folium.plugins import MarkerCluster
+from IPython.display import display
+
+TILE_URL = ('https://server.arcgisonline.com/ArcGIS/rest/services/'
+            'World_Street_Map/MapServer/tile/{z}/{y}/{x}')
+
+# ===== 2. 엑셀 파일 찾아서 읽기 =====
+found = []
+for root, dirs, names in os.walk('/content'):
+    for f in names:
+        name = unicodedata.normalize('NFC', f)
+        if '화장실' in name and name.lower().endswith(('.xls', '.xlsx')):
+            found.append(os.path.join(root, f))
+
+if not found:   # 못 찾으면 직접 업로드
+    from google.colab import files as colab_files
+    up = colab_files.upload()
+    found = [list(up.keys())[0]]
+
+path = found[0]
+print('읽은 파일:', path)
+df = pd.read_excel(path, engine='openpyxl' if path.lower().endswith('.xlsx') else 'xlrd')
+
+# ===== 3. 고양시만 남기기 =====
+addr = df['소재지도로명주소'].fillna('') + ' ' + df['소재지지번주소'].fillna('')
+df = df[addr.str.contains('고양시')].copy()
+
+# ===== 4. 학교 제외 =====
+name_addr = df['화장실명'].fillna('') + ' ' + df['소재지도로명주소'].fillna('')
+df = df[~name_addr.str.contains('학교|초등|중학|고등|대학')]
+
+# ===== 5. 좌표 정리 =====
+df['위도'] = pd.to_numeric(df['위도'], errors='coerce')
+df['경도'] = pd.to_numeric(df['경도'], errors='coerce')
+df = df.dropna(subset=['위도', '경도'])
+df = df[df['위도'].between(37.5, 37.8) & df['경도'].between(126.6, 127.1)]
+print('지도에 표시할 화장실 수:', len(df))
+
+# ===== 6. 도우미 함수 =====
+def clean_hours(x):
+    if pd.isna(x):
+        return '알 수 없음'
+    t = str(x).strip().replace(' ', '')
+    if t in ('24시간', '00:00~24:00'):
+        return '24시간'
+    if re.fullmatch(r'\d{1,2}:\d{2}~\d{1,2}:\d{2}', t) and t != '00:00~00:00':
+        return t
+    if re.fullmatch(r'\d{1,2}시~\d{1,2}시', t):
+        return t
+    return '알 수 없음'
+
+def num(r, col):
+    v = pd.to_numeric(r[col], errors='coerce')
+    return 0 if pd.isna(v) else int(v)
+
+def items(r):
+    return [
+        ('남성 대변기',   num(r, '남성용-대변기수')),
+        ('남성 소변기',   num(r, '남성용-소변기수')),
+        ('남성 장애인용', num(r, '남성용-장애인용대변기수') + num(r, '남성용-장애인용소변기수')),
+        ('남성 어린이용', num(r, '남성용-어린이용대변기수') + num(r, '남성용-어린이용소변기수')),
+        ('여성 대변기',   num(r, '여성용-대변기수')),
+        ('여성 장애인용', num(r, '여성용-장애인용대변기수')),
+        ('여성 어린이용', num(r, '여성용-어린이용대변기수')),
+    ]
+
+rng = np.random.default_rng(42)   # 시드 고정
+
+def simulate(r):
+    busy = rng.uniform(0.1, 0.8)
+    result = []
+    for name, total in items(r):
+        if total > 0:
+            used = int(rng.binomial(total, busy))
+            result.append((name, total, total - used))
+    return result
+
+def make_popup(r, sim):
+    road = r['소재지도로명주소'] if pd.notna(r['소재지도로명주소']) else r['소재지지번주소']
+    total = sum(t for _, t, _ in sim)
+    avail = sum(a for _, _, a in sim)
+    body = ''.join(f'<tr><td>{n_}</td><td align="right">{a}/{t}개</td></tr>'
+                   for n_, t, a in sim) or '<tr><td colspan="2">정보 없음</td></tr>'
+    html = (f'<div style="font-size:13px">'
+            f'<b style="font-size:15px">{r["화장실명"]}</b><br>{road}<br>'
+            f'개방시간: {clean_hours(r["개방시간"])}<hr style="margin:4px 0">'
+            f'<b>사용 가능 {avail}/{total}개</b><table>{body}</table>'
+            f'<div style="color:#888;font-size:11px;margin-top:4px">'
+            f'※ 시뮬레이션 값이며 실제 사용 현황이 아닙니다.</div></div>')
+    return folium.Popup(html, max_width=320)
+
+def pick_color(avail, total):
+    if total == 0:
+        return 'gray'
+    ratio = avail / total
+    return 'green' if ratio >= 0.5 else 'orange' if ratio >= 0.2 else 'red'
+
+# ===== 7. 지도 만들기 =====
+m = folium.Map(location=[df['위도'].mean(), df['경도'].mean()],
+               zoom_start=12, tiles=TILE_URL, attr='Tiles © Esri')
+cluster = MarkerCluster(name='고양시 화장실').add_to(m)
+
+for _, r in df.iterrows():
+    sim = simulate(r)
+    total = sum(t for _, t, _ in sim)
+    avail = sum(a for _, _, a in sim)
+    folium.Marker(
+        [r['위도'], r['경도']],
+        popup=make_popup(r, sim),
+        tooltip=f"{r['화장실명']} (사용 가능 {avail}/{total})",
+        icon=folium.Icon(color=pick_color(avail, total))
+    ).add_to(cluster)
+
+legend = ('<div style="position:fixed;bottom:25px;left:25px;z-index:9999;background:white;'
+          'padding:8px 10px;border:1px solid #999;border-radius:6px;font-size:12px">'
+          '<b>사용 가능 비율 (시뮬레이션)</b><br>'
+          '<span style="color:#72b026">●</span> 50% 이상<br>'
+          '<span style="color:#f69730">●</span> 20~50%<br>'
+          '<span style="color:#d63e2a">●</span> 20% 미만<br>'
+          '<span style="color:#a3a3a3">●</span> 정보 없음</div>')
+m.get_root().html.add_child(folium.Element(legend))
+folium.LayerControl().add_to(m)
+
+m.save('/content/index.html')
+print('index.html 저장 완료, 크기:', round(os.path.getsize('/content/index.html') / 1e6, 2), 'MB')
+display(m)
+
+# ===== 8. GitHub에 코드로 올리기 =====
+def upload_to_github(owner, repo, token, local_path='/content/index.html',
+                     remote_path='index.html'):
+    headers = {'Authorization': f'Bearer {token}',
+               'Accept': 'application/vnd.github+json'}
+    api = f'https://api.github.com/repos/{owner}/{repo}'
+
+    # 저장소 확인 + 기본 브랜치 이름 가져오기
+    r = requests.get(api, headers=headers)
+    if r.status_code != 200:
+        raise RuntimeError(f'저장소를 찾을 수 없습니다 ({r.status_code}). 아이디·저장소 이름·토큰 권한을 확인하세요.')
+    branch = r.json()['default_branch']
+
+    # 같은 이름의 파일이 이미 있으면 덮어쓰기 위해 sha 필요
+    sha = None
+    g = requests.get(f'{api}/contents/{remote_path}', headers=headers, params={'ref': branch})
+    if g.status_code == 200:
+        sha = g.json()['sha']
+
+    with open(local_path, 'rb') as f:
+        content = base64.b64encode(f.read()).decode()
+
+    payload = {'message': 'update index.html', 'content': content, 'branch': branch}
+    if sha:
+        payload['sha'] = sha
+    p = requests.put(f'{api}/contents/{remote_path}', headers=headers, json=payload)
+    if p.status_code not in (200, 201):
+        raise RuntimeError(f'업로드 실패 ({p.status_code}): {p.text[:300]}')
+    print('업로드 성공:', p.json()['content']['html_url'], '| 크기:', p.json()['content']['size'], 'bytes')
+
+    # GitHub Pages 켜기 (이미 켜져 있으면 넘어감)
+    pg = requests.post(f'{api}/pages', headers=headers,
+                       json={'source': {'branch': branch, 'path': '/'}})
+    if pg.status_code == 201:
+        print('GitHub Pages를 켰습니다.')
+    elif pg.status_code == 409:
+        print('GitHub Pages는 이미 켜져 있습니다.')
+    else:
+        print('Pages 설정 응답:', pg.status_code, pg.text[:200])
+
+    print(f'\n배포 주소(1~2분 뒤 접속 가능): https://{owner}.github.io/{repo}/')
+
+owner = input('GitHub 아이디: ').strip()
+repo = input('저장소 이름 (예: toilet): ').strip() or 'toilet'
+token = getpass.getpass('GitHub 토큰(입력해도 화면에 보이지 않습니다): ').strip()
+upload_to_github(owner, repo, token)
