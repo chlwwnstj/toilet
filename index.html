@@ -343,7 +343,7 @@
 
     // 고양시 공중화장실 데이터 (공중화장실현황 엑셀에서 추출)
     // 순서: [이름, 주소, 위도, 경도, 남성 대변기 수, 여성 대변기 수, 개방시간]
-    // ※ 아래는 예시 2줄이에요. 전체 데이터는 파이썬 스크립트로 만들어 넣으세요.
+    // ※ 아래는 예시 2줄이에요. 데이터가 30곳보다 적으면 카카오 검색으로 자동으로 채워요.
     var GOYANG_TOILETS = [
       ["진원프라자", "경기도 고양시 일산동구 정발산로 27", 37.656938, 126.771836, 2, 2, ":~:"],
       ["웨스턴돔 타워", "경기도 고양시 일산동구 정발산로 24 (장항동, 웨스턴돔1)", 37.655893, 126.771971, 2, 3, "24시간"]
@@ -534,6 +534,55 @@
       }
 
       map.setBounds(bounds);
+
+      // 내장 데이터가 부족하면(예: 예시 데이터만 붙여 넣은 경우) 카카오 검색으로 채움
+      if (GOYANG_TOILETS.length < NEARBY_COUNT) {
+        fillWithKakaoSearch(bounds, searchCounter);
+      }
+    }
+
+    // 내장 데이터가 부족할 때 카카오 검색으로 내 주변 화장실을 채우는 함수
+    function fillWithKakaoSearch(bounds, myCounter) {
+      var options = {
+        location: currentPosition,
+        radius: 5000,
+        sort: kakao.maps.services.SortBy.DISTANCE
+      };
+
+      placesService.keywordSearch("공중화장실", function (data, status, pagination) {
+        // 검색 중에 탭을 바꿨다면 결과를 버림
+        if (myCounter !== searchCounter || currentTab !== "goyang") {
+          return;
+        }
+        if (status !== kakao.maps.services.Status.OK) {
+          return;
+        }
+
+        var myLat = currentPosition.getLat();
+        var myLng = currentPosition.getLng();
+
+        for (var i = 0; i < data.length; i++) {
+          var lat = parseFloat(data[i].y);
+          var lng = parseFloat(data[i].x);
+          var place = {
+            name: data[i].place_name,
+            address: data[i].road_address_name || data[i].address_name,
+            lat: lat,
+            lng: lng,
+            maleStalls: 0,      // 0 이면 시뮬레이션에서 임의로 정함
+            femaleStalls: 0,
+            hours: "",
+            distance: calcDistance(myLat, myLng, lat, lng)
+          };
+          addPlace(place, bounds);
+        }
+        map.setBounds(bounds);
+
+        // 결과를 최대 3페이지(약 45곳)까지 이어서 가져옴
+        if (pagination.current < Math.min(pagination.last, 3)) {
+          pagination.gotoPage(pagination.current + 1);
+        }
+      }, options);
     }
 
     // 두 지점 사이의 거리를 m 단위로 계산 (하버사인 공식)
@@ -857,58 +906,3 @@
   </script>
 </body>
 </html>
-
-import pandas as pd
-import json
-import re
-
-# 엑셀 읽기
-df = pd.read_excel("공중화장실현황_제공표준_.xls")
-
-# 고양시 화장실만 고르기
-road = df["소재지도로명주소"].fillna("")
-jibun = df["소재지지번주소"].fillna("")
-goyang = df[road.str.contains("고양시") | jibun.str.contains("고양시")].copy()
-
-# 좌표가 없는 곳 제외
-goyang = goyang.dropna(subset=["위도", "경도"])
-
-# 학교 제외
-school = re.compile(r"학교|초등|중학|고등|대학교|유치원")
-is_school = (
-    goyang["화장실명"].fillna("").str.contains(school)
-    | goyang["소재지지번주소"].fillna("").str.contains(school)
-    | goyang["관리기관명"].fillna("").str.contains(school)
-)
-goyang = goyang[~is_school]
-
-# 숫자로 바꾸는 함수 (빈 칸은 0)
-def to_number(value):
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        return 0
-
-rows = []
-for _, row in goyang.iterrows():
-    male = (to_number(row["남성용-대변기수"])
-            + to_number(row["남성용-장애인용대변기수"])
-            + to_number(row["남성용-어린이용대변기수"]))
-    female = (to_number(row["여성용-대변기수"])
-              + to_number(row["여성용-장애인용대변기수"])
-              + to_number(row["여성용-어린이용대변기수"]))
-
-    address = row["소재지도로명주소"] if pd.notna(row["소재지도로명주소"]) else row["소재지지번주소"]
-    hours = row["개방시간"] if pd.notna(row["개방시간"]) else ""
-
-    rows.append([
-        str(row["화장실명"]), str(address),
-        round(float(row["위도"]), 6), round(float(row["경도"]), 6),
-        male, female, str(hours)
-    ])
-
-# JS 배열 형태로 저장
-with open("data.js", "w", encoding="utf-8") as f:
-    f.write(json.dumps(rows, ensure_ascii=False, separators=(",", ":")))
-
-print("저장한 화장실 수:", len(rows))
