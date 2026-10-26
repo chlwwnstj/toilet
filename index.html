@@ -1,58 +1,3 @@
-import pandas as pd
-import json
-import re
-
-# 엑셀 읽기
-df = pd.read_excel("공중화장실현황_제공표준_.xls")
-
-# 고양시 화장실만 고르기
-road = df["소재지도로명주소"].fillna("")
-jibun = df["소재지지번주소"].fillna("")
-goyang = df[road.str.contains("고양시") | jibun.str.contains("고양시")].copy()
-
-# 좌표가 없는 곳은 지도에 표시할 수 없어서 제외
-goyang = goyang.dropna(subset=["위도", "경도"])
-
-# 학교 화장실 제외
-school = re.compile(r"학교|초등|중학|고등|대학교|유치원")
-is_school = (
-    goyang["화장실명"].fillna("").str.contains(school)
-    | goyang["소재지지번주소"].fillna("").str.contains(school)
-    | goyang["관리기관명"].fillna("").str.contains(school)
-)
-goyang = goyang[~is_school]
-
-# 숫자로 바꾸는 함수 (빈 칸은 0)
-def to_number(value):
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        return 0
-
-rows = []
-for _, row in goyang.iterrows():
-    male = (to_number(row["남성용-대변기수"])
-            + to_number(row["남성용-장애인용대변기수"])
-            + to_number(row["남성용-어린이용대변기수"]))
-    female = (to_number(row["여성용-대변기수"])
-              + to_number(row["여성용-장애인용대변기수"])
-              + to_number(row["여성용-어린이용대변기수"]))
-
-    address = row["소재지도로명주소"] if pd.notna(row["소재지도로명주소"]) else row["소재지지번주소"]
-    hours = row["개방시간"] if pd.notna(row["개방시간"]) else ""
-
-    rows.append([
-        str(row["화장실명"]), str(address),
-        round(float(row["위도"]), 6), round(float(row["경도"]), 6),
-        male, female, str(hours)
-    ])
-
-# 자바스크립트 파일로 저장
-with open("toilets-data.js", "w", encoding="utf-8") as f:
-    f.write("var GOYANG_TOILETS = " + json.dumps(rows, ensure_ascii=False, separators=(",", ":")) + ";\n")
-
-print("저장한 화장실 수:", len(rows))
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -113,6 +58,24 @@ print("저장한 화장실 수:", len(rows))
       font-weight: bold;
       background: #ffffff;
       border-bottom-color: #2563eb;
+    }
+
+    /* 엑셀 파일 선택 영역 (탭 1에서만 보임) */
+    #excelBar {
+      display: none;
+      padding: 10px 14px;
+      font-size: 13px;
+      background: #f8fafc;
+      border-bottom: 1px solid #eee;
+    }
+
+    #excelBar.visible {
+      display: block;
+    }
+
+    #excelStatus {
+      margin-top: 6px;
+      color: #2563eb;
     }
 
     /* 지역명 검색창 (탭 2에서만 보임) */
@@ -361,6 +324,13 @@ print("저장한 화장실 수:", len(rows))
         <button class="tab-button" id="tabRegion">지역명으로 검색</button>
       </div>
 
+      <!-- 탭 1 에서만 보이는 엑셀 파일 선택 -->
+      <div id="excelBar" class="visible">
+        <div>공중화장실현황 엑셀 파일을 직접 고를 수도 있어요</div>
+        <input id="excelInput" type="file" accept=".xls,.xlsx">
+        <div id="excelStatus">엑셀 데이터를 불러오는 중...</div>
+      </div>
+
       <!-- 탭 2 에서만 보이는 검색창 -->
       <div id="searchForm">
         <input id="regionInput" type="text" placeholder="지역명 입력 (예: 강남역)">
@@ -384,6 +354,9 @@ print("저장한 화장실 수:", len(rows))
     </div>
   </div>
 
+  <!-- 엑셀 파일을 읽기 위한 라이브러리 (SheetJS) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
   <!--
     카카오 지도 SDK
     - autoload=false : 아래에서 kakao.maps.load()로 직접 실행 (로딩 오류 방지)
@@ -391,21 +364,13 @@ print("저장한 화장실 수:", len(rows))
   -->
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=654464dfc5d446f2196b6b0a69e4ba29&libraries=services&autoload=false"></script>
 
-  <!-- 고양시 공중화장실 데이터 (같은 폴더의 toilets-data.js) -->
-  <script src="toilets-data.js"></script>
-
   <script>
     // ============================================================
-    // 1. 데이터와 설정값
+    // 1. 설정값
     // ============================================================
 
-    // 고양시 공중화장실 데이터는 toilets-data.js 파일에서 불러와요.
-    // (index.html과 같은 폴더에 toilets-data.js를 두세요)
-    // 데이터 순서: [이름, 주소, 위도, 경도, 남성 대변기 수, 여성 대변기 수, 개방시간]
-    // 파일을 못 불러왔을 때를 대비해 빈 배열로 시작해요.
-    if (typeof GOYANG_TOILETS === "undefined") {
-      var GOYANG_TOILETS = [];
-    }
+    // index.html 과 같은 폴더에 두면 자동으로 읽는 엑셀 파일 이름
+    var EXCEL_FILE_NAME = "공중화장실현황_제공표준_.xls";
 
     // 지도 레벨 (숫자가 작을수록 확대됨)
     var MAP_LEVEL = 5;
@@ -416,6 +381,12 @@ print("저장한 화장실 수:", len(rows))
 
     // 탭 1에서 보여줄 가까운 화장실 개수
     var NEARBY_COUNT = 30;
+
+    // 학교로 판단할 글자들 (이 글자가 들어간 화장실은 제외)
+    var SCHOOL_PATTERN = /학교|초등|중학|고등|대학교|유치원/;
+
+    // 엑셀이 없을 때 카카오에서 차례로 검색할 단어들
+    var FALLBACK_KEYWORDS = ["공중화장실", "개방화장실", "화장실"];
 
     // ============================================================
     // 2. 전역 변수
@@ -429,6 +400,12 @@ print("저장한 화장실 수:", len(rows))
     var currentPosition = null;  // 현재 위치 (kakao.maps.LatLng)
     var currentTab = "goyang";   // 현재 선택된 탭 ("goyang" 또는 "region")
     var searchCounter = 0;       // 탭을 빨리 바꿀 때 이전 결과가 섞이지 않게 막는 번호
+    var shownIds = {};           // 카카오 검색에서 이미 보여준 장소 (중복 방지)
+
+    // 고양시 화장실 데이터
+    // 순서: [이름, 주소, 위도, 경도, 남성 대변기 수, 여성 대변기 수, 개방시간]
+    var GOYANG_TOILETS = [];
+    var dataStatus = "loading";  // "loading"(읽는 중) / "loaded"(성공) / "missing"(없음)
 
     // ============================================================
     // 3. 시작: SDK가 완전히 로드된 뒤에 실행
@@ -474,13 +451,151 @@ print("저장한 화장실 수:", len(rows))
         }
       });
       document.getElementById("roadviewClose").addEventListener("click", closeRoadview);
+      document.getElementById("excelInput").addEventListener("change", handleExcelSelect);
 
-      // 현재 위치를 요청한 뒤 탭 1 결과를 보여줌
+      // 엑셀 자동 불러오기 + 현재 위치 요청을 함께 시작
+      loadExcelAuto();
       requestCurrentLocation();
     }
 
     // ============================================================
-    // 4. 현재 위치
+    // 4. 엑셀 데이터 불러오기
+    // ============================================================
+
+    // 같은 폴더의 엑셀 파일을 자동으로 읽기 (Live Server / 웹 서버에서 동작)
+    function loadExcelAuto() {
+      if (typeof XLSX === "undefined") {
+        setDataMissing("엑셀 라이브러리를 불러오지 못했어요.");
+        return;
+      }
+
+      fetch(encodeURI(EXCEL_FILE_NAME))
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error("파일을 찾지 못했어요");
+          }
+          return response.arrayBuffer();
+        })
+        .then(function (buffer) {
+          applyExcelData(buffer);
+        })
+        .catch(function () {
+          setDataMissing("같은 폴더에서 엑셀을 찾지 못했어요. 위의 '파일 선택'을 눌러 주세요.");
+        });
+    }
+
+    // 사용자가 '파일 선택'으로 엑셀을 고른 경우
+    function handleExcelSelect(event) {
+      var file = event.target.files[0];
+      if (!file) {
+        return;
+      }
+      if (typeof XLSX === "undefined") {
+        setDataMissing("엑셀 라이브러리를 불러오지 못했어요.");
+        return;
+      }
+
+      document.getElementById("excelStatus").textContent = "엑셀 데이터를 읽는 중...";
+
+      var reader = new FileReader();
+      reader.onload = function (loadEvent) {
+        applyExcelData(loadEvent.target.result);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 엑셀 내용을 읽어서 고양시 화장실 목록을 만들고 화면을 다시 그림
+    function applyExcelData(buffer) {
+      try {
+        GOYANG_TOILETS = parseExcel(buffer);
+      } catch (error) {
+        console.log("엑셀 읽기 오류:", error);
+        setDataMissing("엑셀을 읽는 중 오류가 났어요.");
+        return;
+      }
+
+      if (GOYANG_TOILETS.length === 0) {
+        setDataMissing("엑셀에서 고양시 화장실을 찾지 못했어요.");
+        return;
+      }
+
+      dataStatus = "loaded";
+      document.getElementById("excelStatus").textContent =
+        "고양시 화장실 " + GOYANG_TOILETS.length + "곳을 불러왔어요 (학교 제외)";
+      refreshGoyangTab();
+    }
+
+    // 엑셀을 못 읽었을 때
+    function setDataMissing(message) {
+      dataStatus = "missing";
+      document.getElementById("excelStatus").textContent = message;
+      refreshGoyangTab();
+    }
+
+    // 지금 탭 1을 보고 있으면 다시 그리기
+    function refreshGoyangTab() {
+      if (currentTab === "goyang" && currentPosition) {
+        switchTab("goyang");
+      }
+    }
+
+    // 엑셀 파일(buffer)에서 고양시 화장실만 뽑아 배열로 만들기
+    function parseExcel(buffer) {
+      var workbook = XLSX.read(buffer, { type: "array" });
+      var sheet = workbook.Sheets[workbook.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      var result = [];
+
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+
+        var name = String(row["화장실명"]);
+        var roadAddress = String(row["소재지도로명주소"]);
+        var jibunAddress = String(row["소재지지번주소"]);
+        var manager = String(row["관리기관명"]);
+
+        // 고양시 화장실만 사용
+        if (roadAddress.indexOf("고양시") === -1 && jibunAddress.indexOf("고양시") === -1) {
+          continue;
+        }
+
+        // 학교 화장실은 제외
+        if (SCHOOL_PATTERN.test(name) || SCHOOL_PATTERN.test(jibunAddress) || SCHOOL_PATTERN.test(manager)) {
+          continue;
+        }
+
+        // 좌표가 없는 곳은 지도에 표시할 수 없어서 제외
+        var lat = parseFloat(row["위도"]);
+        var lng = parseFloat(row["경도"]);
+        if (isNaN(lat) || isNaN(lng)) {
+          continue;
+        }
+
+        // 대변기 수 (일반 + 장애인용 + 어린이용)
+        var male = toNumber(row["남성용-대변기수"]) +
+                   toNumber(row["남성용-장애인용대변기수"]) +
+                   toNumber(row["남성용-어린이용대변기수"]);
+        var female = toNumber(row["여성용-대변기수"]) +
+                     toNumber(row["여성용-장애인용대변기수"]) +
+                     toNumber(row["여성용-어린이용대변기수"]);
+
+        var address = roadAddress !== "" ? roadAddress : jibunAddress;
+
+        result.push([name, address, lat, lng, male, female, String(row["개방시간"])]);
+      }
+
+      return result;
+    }
+
+    // 값을 숫자로 바꾸기 (빈 칸이나 글자는 0)
+    function toNumber(value) {
+      var number = parseInt(value, 10);
+      return isNaN(number) ? 0 : number;
+    }
+
+    // ============================================================
+    // 5. 현재 위치
     // ============================================================
     function requestCurrentLocation() {
       // 위치 기능을 지원하지 않는 브라우저
@@ -512,7 +627,7 @@ print("저장한 화장실 수:", len(rows))
     }
 
     // ============================================================
-    // 5. 탭 전환
+    // 6. 탭 전환
     // ============================================================
     function switchTab(tabName) {
       currentTab = tabName;
@@ -522,7 +637,8 @@ print("저장한 화장실 수:", len(rows))
       document.getElementById("tabGoyang").classList.toggle("active", tabName === "goyang");
       document.getElementById("tabRegion").classList.toggle("active", tabName === "region");
 
-      // 지역명 검색창은 탭 2에서만 보이게
+      // 탭마다 필요한 입력 영역만 보이게
+      document.getElementById("excelBar").classList.toggle("visible", tabName === "goyang");
       document.getElementById("searchForm").classList.toggle("visible", tabName === "region");
 
       // 기존 마커, 리스트, 말풍선, 로드뷰를 모두 지움
@@ -542,6 +658,7 @@ print("저장한 화장실 수:", len(rows))
         markers[i].setMap(null);
       }
       markers = [];
+      shownIds = {};
       infoWindow.close();
       closeRoadview();
       document.getElementById("resultList").innerHTML = "";
@@ -549,7 +666,7 @@ print("저장한 화장실 수:", len(rows))
     }
 
     // ============================================================
-    // 6. 탭 1: 내 위치 주변의 고양시 화장실 (엑셀 데이터)
+    // 7. 탭 1: 내 위치 주변의 고양시 화장실
     // ============================================================
     function showNearbyGoyangToilets() {
       if (!currentPosition) {
@@ -557,13 +674,24 @@ print("저장한 화장실 수:", len(rows))
         return;
       }
 
+      // 엑셀을 아직 읽는 중이면 기다림 (다 읽으면 자동으로 다시 그려요)
+      if (dataStatus === "loading") {
+        showMessage("엑셀 데이터를 불러오는 중이에요...");
+        return;
+      }
+
+      var bounds = new kakao.maps.LatLngBounds();
+      bounds.extend(currentPosition);
+
+      // 엑셀 데이터가 없으면 카카오 검색으로 대신 보여줌
+      if (GOYANG_TOILETS.length === 0) {
+        showMessage("※ 엑셀 데이터가 없어서 카카오 검색 결과로 보여줘요.");
+        runFallbackSearch(0, bounds, searchCounter);
+        return;
+      }
+
       var myLat = currentPosition.getLat();
       var myLng = currentPosition.getLng();
-
-      // 데이터 파일을 못 불러왔으면 안내 (카카오 검색 결과로 대신 채워져요)
-      if (GOYANG_TOILETS.length === 0) {
-        showMessage("※ toilets-data.js를 불러오지 못해 카카오 검색 결과만 보여줘요.");
-      }
 
       // 각 화장실까지의 거리를 계산해서 가까운 순으로 정렬
       var withDistance = GOYANG_TOILETS.map(function (toilet) {
@@ -578,8 +706,6 @@ print("저장한 화장실 수:", len(rows))
       });
 
       var nearby = withDistance.slice(0, NEARBY_COUNT);
-      var bounds = new kakao.maps.LatLngBounds();
-      bounds.extend(currentPosition);
 
       for (var i = 0; i < nearby.length; i++) {
         var item = nearby[i];
@@ -597,27 +723,29 @@ print("저장한 화장실 수:", len(rows))
       }
 
       map.setBounds(bounds);
-
-      // 내장 데이터가 부족하면 카카오 검색으로 채움
-      if (GOYANG_TOILETS.length < NEARBY_COUNT) {
-        fillWithKakaoSearch(bounds, searchCounter);
-      }
     }
 
-    // 내장 데이터가 부족할 때 카카오 검색으로 내 주변 화장실을 채우는 함수
-    function fillWithKakaoSearch(bounds, myCounter) {
+    // 엑셀이 없을 때: 카카오 검색을 여러 단어로 차례로 실행해서 결과를 모음
+    function runFallbackSearch(keywordIndex, bounds, myCounter) {
+      if (keywordIndex >= FALLBACK_KEYWORDS.length) {
+        return;
+      }
+
       var options = {
         location: currentPosition,
-        radius: 5000,
+        radius: 10000,
         sort: kakao.maps.services.SortBy.DISTANCE
       };
 
-      placesService.keywordSearch("공중화장실", function (data, status, pagination) {
+      placesService.keywordSearch(FALLBACK_KEYWORDS[keywordIndex], function (data, status, pagination) {
         // 검색 중에 탭을 바꿨다면 결과를 버림
         if (myCounter !== searchCounter || currentTab !== "goyang") {
           return;
         }
+
+        // 결과가 없거나 오류면 다음 검색어로
         if (status !== kakao.maps.services.Status.OK) {
+          runFallbackSearch(keywordIndex + 1, bounds, myCounter);
           return;
         }
 
@@ -625,6 +753,12 @@ print("저장한 화장실 수:", len(rows))
         var myLng = currentPosition.getLng();
 
         for (var i = 0; i < data.length; i++) {
+          // 같은 장소를 두 번 보여주지 않기
+          if (shownIds[data[i].id]) {
+            continue;
+          }
+          shownIds[data[i].id] = true;
+
           var lat = parseFloat(data[i].y);
           var lng = parseFloat(data[i].x);
           var place = {
@@ -641,9 +775,11 @@ print("저장한 화장실 수:", len(rows))
         }
         map.setBounds(bounds);
 
-        // 결과를 최대 3페이지(약 45곳)까지 이어서 가져옴
+        // 같은 검색어의 다음 페이지(최대 3페이지), 끝나면 다음 검색어
         if (pagination.current < Math.min(pagination.last, 3)) {
           pagination.gotoPage(pagination.current + 1);
+        } else {
+          runFallbackSearch(keywordIndex + 1, bounds, myCounter);
         }
       }, options);
     }
@@ -669,7 +805,7 @@ print("저장한 화장실 수:", len(rows))
     }
 
     // ============================================================
-    // 7. 탭 2: 지역명으로 검색 (카카오 장소 검색)
+    // 8. 탭 2: 지역명으로 검색 (카카오 장소 검색)
     // ============================================================
     function searchRegion() {
       var region = document.getElementById("regionInput").value.trim();
@@ -741,7 +877,7 @@ print("저장한 화장실 수:", len(rows))
     }
 
     // ============================================================
-    // 8. 장소 하나를 지도(마커)와 리스트에 추가
+    // 9. 장소 하나를 지도(마커)와 리스트에 추가
     // ============================================================
     function addPlace(place, bounds) {
       var position = new kakao.maps.LatLng(place.lat, place.lng);
@@ -788,7 +924,7 @@ print("저장한 화장실 수:", len(rows))
     }
 
     // ============================================================
-    // 9. 마커 팝업 (이름, 주소, 변기 사용 가능 여부 시뮬레이션)
+    // 10. 마커 팝업 (이름, 주소, 변기 사용 가능 여부 시뮬레이션)
     // ============================================================
     function openPopup(place, marker, position) {
       var popup = document.createElement("div");
@@ -895,7 +1031,7 @@ print("저장한 화장실 수:", len(rows))
     }
 
     // ============================================================
-    // 10. 로드뷰
+    // 11. 로드뷰
     // ============================================================
     function openRoadview(position) {
       var panel = document.getElementById("roadviewPanel");
@@ -925,7 +1061,7 @@ print("저장한 화장실 수:", len(rows))
     }
 
     // ============================================================
-    // 11. 페이지 번호, 안내 메시지
+    // 12. 페이지 번호, 안내 메시지
     // ============================================================
     function showPagination(pagination) {
       var paginationEl = document.getElementById("pagination");
