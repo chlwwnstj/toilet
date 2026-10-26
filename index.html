@@ -1,183 +1,426 @@
-# ===== 1. 드라이브 연결 & 도구 불러오기 =====
-from google.colab import drive
-drive.mount('/content/drive')
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>장소 검색 서비스</title>
 
-import os, re, glob, base64, getpass, unicodedata
-import pandas as pd
-import numpy as np
-import requests
-!pip install folium xlrd -q
-import folium
-from folium.plugins import MarkerCluster
-from IPython.display import display
+  <style>
+    /* 기본 여백 제거 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-TILE_URL = ('https://server.arcgisonline.com/ArcGIS/rest/services/'
-            'World_Street_Map/MapServer/tile/{z}/{y}/{x}')
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    }
 
-# ===== 2. 엑셀 파일 찾아서 읽기 =====
-found = []
-for root, dirs, names in os.walk('/content'):
-    for f in names:
-        name = unicodedata.normalize('NFC', f)
-        if '화장실' in name and name.lower().endswith(('.xls', '.xlsx')):
-            found.append(os.path.join(root, f))
+    /* 화면 2분할: 왼쪽(검색) + 오른쪽(지도) */
+    #container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+    }
 
-if not found:   # 못 찾으면 직접 업로드
-    from google.colab import files as colab_files
-    up = colab_files.upload()
-    found = [list(up.keys())[0]]
+    /* 왼쪽 영역 */
+    #sidebar {
+      width: 360px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #ddd;
+      background: #ffffff;
+    }
 
-path = found[0]
-print('읽은 파일:', path)
-df = pd.read_excel(path, engine='openpyxl' if path.lower().endswith('.xlsx') else 'xlrd')
+    /* 검색창 영역 */
+    #searchForm {
+      display: flex;
+      gap: 6px;
+      padding: 14px;
+      border-bottom: 1px solid #eee;
+    }
 
-# ===== 3. 고양시만 남기기 =====
-addr = df['소재지도로명주소'].fillna('') + ' ' + df['소재지지번주소'].fillna('')
-df = df[addr.str.contains('고양시')].copy()
+    #keywordInput {
+      flex: 1;
+      padding: 10px 12px;
+      font-size: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
 
-# ===== 4. 학교 제외 =====
-name_addr = df['화장실명'].fillna('') + ' ' + df['소재지도로명주소'].fillna('')
-df = df[~name_addr.str.contains('학교|초등|중학|고등|대학')]
+    #searchButton {
+      padding: 10px 16px;
+      font-size: 15px;
+      color: #fff;
+      background: #3b82f6;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
 
-# ===== 5. 좌표 정리 =====
-df['위도'] = pd.to_numeric(df['위도'], errors='coerce')
-df['경도'] = pd.to_numeric(df['경도'], errors='coerce')
-df = df.dropna(subset=['위도', '경도'])
-df = df[df['위도'].between(37.5, 37.8) & df['경도'].between(126.6, 127.1)]
-print('지도에 표시할 화장실 수:', len(df))
+    #searchButton:hover {
+      background: #2563eb;
+    }
 
-# ===== 6. 도우미 함수 =====
-def clean_hours(x):
-    if pd.isna(x):
-        return '알 수 없음'
-    t = str(x).strip().replace(' ', '')
-    if t in ('24시간', '00:00~24:00'):
-        return '24시간'
-    if re.fullmatch(r'\d{1,2}:\d{2}~\d{1,2}:\d{2}', t) and t != '00:00~00:00':
-        return t
-    if re.fullmatch(r'\d{1,2}시~\d{1,2}시', t):
-        return t
-    return '알 수 없음'
+    /* 검색 결과 리스트 (넘치면 스크롤) */
+    #resultList {
+      flex: 1;
+      overflow-y: auto;
+      list-style: none;
+    }
 
-def num(r, col):
-    v = pd.to_numeric(r[col], errors='coerce')
-    return 0 if pd.isna(v) else int(v)
+    #resultList li {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+    }
 
-def items(r):
-    return [
-        ('남성 대변기',   num(r, '남성용-대변기수')),
-        ('남성 소변기',   num(r, '남성용-소변기수')),
-        ('남성 장애인용', num(r, '남성용-장애인용대변기수') + num(r, '남성용-장애인용소변기수')),
-        ('남성 어린이용', num(r, '남성용-어린이용대변기수') + num(r, '남성용-어린이용소변기수')),
-        ('여성 대변기',   num(r, '여성용-대변기수')),
-        ('여성 장애인용', num(r, '여성용-장애인용대변기수')),
-        ('여성 어린이용', num(r, '여성용-어린이용대변기수')),
-    ]
+    #resultList li:hover {
+      background: #f5f8ff;
+    }
 
-rng = np.random.default_rng(42)   # 시드 고정
+    .place-name {
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
 
-def simulate(r):
-    busy = rng.uniform(0.1, 0.8)
-    result = []
-    for name, total in items(r):
-        if total > 0:
-            used = int(rng.binomial(total, busy))
-            result.append((name, total, total - used))
-    return result
+    .place-address {
+      font-size: 13px;
+      color: #666;
+    }
 
-def make_popup(r, sim):
-    road = r['소재지도로명주소'] if pd.notna(r['소재지도로명주소']) else r['소재지지번주소']
-    total = sum(t for _, t, _ in sim)
-    avail = sum(a for _, _, a in sim)
-    body = ''.join(f'<tr><td>{n_}</td><td align="right">{a}/{t}개</td></tr>'
-                   for n_, t, a in sim) or '<tr><td colspan="2">정보 없음</td></tr>'
-    html = (f'<div style="font-size:13px">'
-            f'<b style="font-size:15px">{r["화장실명"]}</b><br>{road}<br>'
-            f'개방시간: {clean_hours(r["개방시간"])}<hr style="margin:4px 0">'
-            f'<b>사용 가능 {avail}/{total}개</b><table>{body}</table>'
-            f'<div style="color:#888;font-size:11px;margin-top:4px">'
-            f'※ 시뮬레이션 값이며 실제 사용 현황이 아닙니다.</div></div>')
-    return folium.Popup(html, max_width=320)
+    .place-phone {
+      font-size: 13px;
+      color: #3b82f6;
+      margin-top: 2px;
+    }
 
-def pick_color(avail, total):
-    if total == 0:
-        return 'gray'
-    ratio = avail / total
-    return 'green' if ratio >= 0.5 else 'orange' if ratio >= 0.2 else 'red'
+    .message {
+      padding: 20px 14px;
+      color: #888;
+      font-size: 14px;
+    }
 
-# ===== 7. 지도 만들기 =====
-m = folium.Map(location=[df['위도'].mean(), df['경도'].mean()],
-               zoom_start=12, tiles=TILE_URL, attr='Tiles © Esri')
-cluster = MarkerCluster(name='고양시 화장실').add_to(m)
+    /* 페이지 번호 */
+    #pagination {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px;
+      border-top: 1px solid #eee;
+    }
 
-for _, r in df.iterrows():
-    sim = simulate(r)
-    total = sum(t for _, t, _ in sim)
-    avail = sum(a for _, _, a in sim)
-    folium.Marker(
-        [r['위도'], r['경도']],
-        popup=make_popup(r, sim),
-        tooltip=f"{r['화장실명']} (사용 가능 {avail}/{total})",
-        icon=folium.Icon(color=pick_color(avail, total))
-    ).add_to(cluster)
+    #pagination a {
+      padding: 4px 9px;
+      font-size: 13px;
+      color: #333;
+      text-decoration: none;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+    }
 
-legend = ('<div style="position:fixed;bottom:25px;left:25px;z-index:9999;background:white;'
-          'padding:8px 10px;border:1px solid #999;border-radius:6px;font-size:12px">'
-          '<b>사용 가능 비율 (시뮬레이션)</b><br>'
-          '<span style="color:#72b026">●</span> 50% 이상<br>'
-          '<span style="color:#f69730">●</span> 20~50%<br>'
-          '<span style="color:#d63e2a">●</span> 20% 미만<br>'
-          '<span style="color:#a3a3a3">●</span> 정보 없음</div>')
-m.get_root().html.add_child(folium.Element(legend))
-folium.LayerControl().add_to(m)
+    #pagination a.current {
+      color: #fff;
+      background: #3b82f6;
+      border-color: #3b82f6;
+      font-weight: bold;
+      cursor: default;
+    }
 
-m.save('/content/index.html')
-print('index.html 저장 완료, 크기:', round(os.path.getsize('/content/index.html') / 1e6, 2), 'MB')
-display(m)
+    /* 오른쪽 지도 영역 */
+    #map {
+      flex: 1;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
 
-# ===== 8. GitHub에 코드로 올리기 =====
-def upload_to_github(owner, repo, token, local_path='/content/index.html',
-                     remote_path='index.html'):
-    headers = {'Authorization': f'Bearer {token}',
-               'Accept': 'application/vnd.github+json'}
-    api = f'https://api.github.com/repos/{owner}/{repo}'
+  <div id="container">
+    <!-- 왼쪽: 검색창 + 결과 리스트 -->
+    <div id="sidebar">
+      <div id="searchForm">
+        <input id="keywordInput" type="text" placeholder="장소를 검색해 보세요 (예: 카페)">
+        <button id="searchButton">검색</button>
+      </div>
+      <ul id="resultList">
+        <li class="message">검색어를 입력하고 검색 버튼을 눌러 보세요.</li>
+      </ul>
+      <div id="pagination"></div>
+    </div>
 
-    # 저장소 확인 + 기본 브랜치 이름 가져오기
-    r = requests.get(api, headers=headers)
-    if r.status_code != 200:
-        raise RuntimeError(f'저장소를 찾을 수 없습니다 ({r.status_code}). 아이디·저장소 이름·토큰 권한을 확인하세요.')
-    branch = r.json()['default_branch']
+    <!-- 오른쪽: 지도 -->
+    <div id="map"></div>
+  </div>
 
-    # 같은 이름의 파일이 이미 있으면 덮어쓰기 위해 sha 필요
-    sha = None
-    g = requests.get(f'{api}/contents/{remote_path}', headers=headers, params={'ref': branch})
-    if g.status_code == 200:
-        sha = g.json()['sha']
+  <!--
+    카카오 지도 SDK
+    - autoload=false : SDK가 자동으로 실행되지 않게 하고, 아래에서 kakao.maps.load()로 직접 실행
+    - libraries=services : 장소 검색 기능을 쓰기 위해 필요
+  -->
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=654464dfc5d446f2196b6b0a69e4ba29&libraries=services&autoload=false"></script>
 
-    with open(local_path, 'rb') as f:
-        content = base64.b64encode(f.read()).decode()
+  <script>
+    // 지도 레벨 (숫자가 작을수록 확대됨)
+    var MAP_LEVEL = 5;
 
-    payload = {'message': 'update index.html', 'content': content, 'branch': branch}
-    if sha:
-        payload['sha'] = sha
-    p = requests.put(f'{api}/contents/{remote_path}', headers=headers, json=payload)
-    if p.status_code not in (200, 201):
-        raise RuntimeError(f'업로드 실패 ({p.status_code}): {p.text[:300]}')
-    print('업로드 성공:', p.json()['content']['html_url'], '| 크기:', p.json()['content']['size'], 'bytes')
+    // 위치 권한을 못 받았을 때 사용할 기본 위치 (고양시청 근처)
+    var DEFAULT_LAT = 37.6584;
+    var DEFAULT_LNG = 126.8320;
 
-    # GitHub Pages 켜기 (이미 켜져 있으면 넘어감)
-    pg = requests.post(f'{api}/pages', headers=headers,
-                       json={'source': {'branch': branch, 'path': '/'}})
-    if pg.status_code == 201:
-        print('GitHub Pages를 켰습니다.')
-    elif pg.status_code == 409:
-        print('GitHub Pages는 이미 켜져 있습니다.')
-    else:
-        print('Pages 설정 응답:', pg.status_code, pg.text[:200])
+    // 전역으로 쓸 변수들
+    var map = null;              // 지도 객체
+    var placesService = null;    // 장소 검색 객체
+    var infoWindow = null;       // 마커 클릭 시 뜨는 말풍선
+    var markers = [];            // 지도 위의 마커 목록
+    var currentPosition = null;  // 현재 위치 (kakao.maps.LatLng)
 
-    print(f'\n배포 주소(1~2분 뒤 접속 가능): https://{owner}.github.io/{repo}/')
+    // 카카오 SDK가 완전히 로드된 뒤에 실행 (로딩 오류 방지)
+    // SDK 파일 자체를 못 불러오면 kakao 변수가 생기지 않아요. 먼저 확인!
+    if (typeof kakao === "undefined") {
+      document.getElementById("map").innerHTML =
+        "<p style='padding:20px;color:#c00;'>카카오 SDK를 불러오지 못했어요.<br>" +
+        "1) 카카오 디벨로퍼스에 Web 도메인 등록<br>" +
+        "2) 카카오맵 사용 설정 ON<br>" +
+        "3) F12 → Network 탭에서 sdk.js 상태 확인</p>";
+    } else {
+      kakao.maps.load(function () {
+        initMap();
+      });
+    }
 
-owner = input('GitHub 아이디: ').strip()
-repo = input('저장소 이름 (예: toilet): ').strip() or 'toilet'
-token = getpass.getpass('GitHub 토큰(입력해도 화면에 보이지 않습니다): ').strip()
-upload_to_github(owner, repo, token)
+    // 지도 초기화 함수
+    function initMap() {
+      var mapContainer = document.getElementById("map");
+
+      // 일단 기본 위치로 지도를 먼저 만든다
+      var defaultPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
+      map = new kakao.maps.Map(mapContainer, {
+        center: defaultPosition,
+        level: MAP_LEVEL
+      });
+
+      // 장소 검색 객체와 말풍선 객체 생성
+      placesService = new kakao.maps.services.Places();
+      infoWindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+
+      // 이벤트 연결
+      document.getElementById("searchButton").addEventListener("click", searchPlaces);
+      document.getElementById("keywordInput").addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          searchPlaces();
+        }
+      });
+
+      // 현재 위치 요청
+      requestCurrentLocation();
+    }
+
+    // 현재 위치를 가져와서 지도 중심으로 이동
+    function requestCurrentLocation() {
+      // 브라우저가 위치 기능을 지원하지 않는 경우
+      if (!navigator.geolocation) {
+        currentPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        // 성공했을 때
+        function (position) {
+          var lat = position.coords.latitude;
+          var lng = position.coords.longitude;
+          currentPosition = new kakao.maps.LatLng(lat, lng);
+
+          // 지도 중심을 현재 위치로 이동하고 레벨 5로 맞춤
+          map.setLevel(MAP_LEVEL);
+          map.setCenter(currentPosition);
+
+          // 현재 위치에 마커 표시
+          new kakao.maps.Marker({
+            map: map,
+            position: currentPosition
+          });
+        },
+        // 실패했을 때 (권한 거부 등)
+        function (error) {
+          console.log("위치 정보를 가져오지 못했어요:", error.message);
+          currentPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
+          alert("위치 권한이 없어서 기본 위치(고양시)로 표시할게요.");
+        }
+      );
+    }
+
+    // 장소 검색 함수
+    function searchPlaces() {
+      var keyword = document.getElementById("keywordInput").value.trim();
+
+      if (keyword === "") {
+        alert("검색어를 입력해 주세요!");
+        return;
+      }
+
+      // 현재 위치가 있으면 가까운 순으로 검색
+      var searchOptions = {};
+      if (currentPosition) {
+        searchOptions.location = currentPosition;
+        searchOptions.sort = kakao.maps.services.SortBy.DISTANCE;
+      }
+
+      placesService.keywordSearch(keyword, handleSearchResult, searchOptions);
+    }
+
+    // 검색 결과를 받았을 때 실행되는 함수
+    function handleSearchResult(data, status, pagination) {
+      if (status === kakao.maps.services.Status.OK) {
+        showPlaces(data);
+        showPagination(pagination);
+      } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+        showMessage("검색 결과가 없어요.");
+      } else {
+        showMessage("검색 중 오류가 발생했어요.");
+      }
+    }
+
+    // 검색 결과를 리스트와 지도에 표시
+    function showPlaces(places) {
+      var resultList = document.getElementById("resultList");
+      var bounds = new kakao.maps.LatLngBounds();
+
+      // 이전 결과 지우기
+      resultList.innerHTML = "";
+      removeMarkers();
+
+      for (var i = 0; i < places.length; i++) {
+        var place = places[i];
+        var position = new kakao.maps.LatLng(place.y, place.x);
+
+        var marker = addMarker(position);
+        var listItem = createListItem(place);
+
+        bindPlaceEvents(marker, listItem, place, position);
+
+        resultList.appendChild(listItem);
+        bounds.extend(position);
+      }
+
+      // 검색된 모든 장소가 보이도록 지도 범위 조정
+      map.setBounds(bounds);
+      resultList.scrollTop = 0;
+    }
+
+    // 리스트 항목(li) 만들기
+    // textContent를 쓰면 이상한 코드가 들어와도 안전해요
+    function createListItem(place) {
+      var li = document.createElement("li");
+
+      var nameDiv = document.createElement("div");
+      nameDiv.className = "place-name";
+      nameDiv.textContent = place.place_name;
+
+      var addressDiv = document.createElement("div");
+      addressDiv.className = "place-address";
+      addressDiv.textContent = place.road_address_name || place.address_name;
+
+      li.appendChild(nameDiv);
+      li.appendChild(addressDiv);
+
+      if (place.phone) {
+        var phoneDiv = document.createElement("div");
+        phoneDiv.className = "place-phone";
+        phoneDiv.textContent = place.phone;
+        li.appendChild(phoneDiv);
+      }
+
+      return li;
+    }
+
+    // 마커와 리스트 항목에 클릭 이벤트 연결
+    function bindPlaceEvents(marker, listItem, place, position) {
+      // 말풍선을 보여주는 함수
+      function openInfoWindow() {
+        var content = document.createElement("div");
+        content.style.padding = "6px 10px";
+        content.style.fontSize = "13px";
+        content.textContent = place.place_name;
+
+        infoWindow.setContent(content);
+        infoWindow.open(map, marker);
+      }
+
+      // 마커를 클릭하면 말풍선 표시
+      kakao.maps.event.addListener(marker, "click", openInfoWindow);
+
+      // 리스트를 클릭하면 해당 장소로 이동 + 말풍선 표시
+      listItem.addEventListener("click", function () {
+        map.panTo(position);
+        openInfoWindow();
+      });
+    }
+
+    // 마커 추가
+    function addMarker(position) {
+      var marker = new kakao.maps.Marker({
+        map: map,
+        position: position
+      });
+      markers.push(marker);
+      return marker;
+    }
+
+    // 기존 마커 모두 제거
+    function removeMarkers() {
+      for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(null);
+      }
+      markers = [];
+      infoWindow.close();
+    }
+
+    // 페이지 번호 표시
+    function showPagination(pagination) {
+      var paginationEl = document.getElementById("pagination");
+      paginationEl.innerHTML = "";
+
+      for (var i = 1; i <= pagination.last; i++) {
+        var link = document.createElement("a");
+        link.textContent = i;
+
+        if (i === pagination.current) {
+          link.className = "current";
+        } else {
+          // 반복문 안에서 i 값을 기억하기 위해 함수로 감싸요
+          link.addEventListener("click", makePageClickHandler(pagination, i));
+        }
+
+        paginationEl.appendChild(link);
+      }
+    }
+
+    // 페이지 번호 클릭 시 해당 페이지로 이동하는 함수 만들기
+    function makePageClickHandler(pagination, pageNumber) {
+      return function () {
+        pagination.gotoPage(pageNumber);
+      };
+    }
+
+    // 안내 메시지 표시
+    function showMessage(text) {
+      var resultList = document.getElementById("resultList");
+      resultList.innerHTML = "";
+      removeMarkers();
+      document.getElementById("pagination").innerHTML = "";
+
+      var li = document.createElement("li");
+      li.className = "message";
+      li.textContent = text;
+      resultList.appendChild(li);
+    }
+  </script>
+</body>
+</html>
