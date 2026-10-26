@@ -7,11 +7,7 @@
 
   <style>
     /* 기본 여백 제거 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
       width: 100%;
@@ -20,11 +16,7 @@
     }
 
     /* 화면 2분할: 왼쪽(탭+리스트) + 오른쪽(지도) */
-    #container {
-      display: flex;
-      width: 100%;
-      height: 100%;
-    }
+    #container { display: flex; width: 100%; height: 100%; }
 
     /* 왼쪽 영역 */
     #sidebar {
@@ -37,10 +29,7 @@
     }
 
     /* 탭 버튼 영역 */
-    #tabBar {
-      display: flex;
-      border-bottom: 2px solid #eee;
-    }
+    #tabBar { display: flex; border-bottom: 2px solid #eee; }
 
     .tab-button {
       flex: 1;
@@ -60,35 +49,9 @@
       border-bottom-color: #2563eb;
     }
 
-    /* 엑셀 파일 선택 영역 (탭 1에서만 보임) */
-    #excelBar {
-      display: none;
-      padding: 10px 14px;
-      font-size: 13px;
-      background: #f8fafc;
-      border-bottom: 1px solid #eee;
-    }
-
-    #excelBar.visible {
-      display: block;
-    }
-
-    #excelStatus {
-      margin-top: 6px;
-      color: #2563eb;
-    }
-
     /* 지역명 검색창 (탭 2에서만 보임) */
-    #searchForm {
-      display: none;
-      gap: 6px;
-      padding: 12px 14px;
-      border-bottom: 1px solid #eee;
-    }
-
-    #searchForm.visible {
-      display: flex;
-    }
+    #searchForm { display: none; gap: 6px; padding: 12px 14px; border-bottom: 1px solid #eee; }
+    #searchForm.visible { display: flex; }
 
     #regionInput {
       flex: 1;
@@ -108,16 +71,10 @@
       cursor: pointer;
     }
 
-    #searchButton:hover {
-      background: #2563eb;
-    }
+    #searchButton:hover { background: #2563eb; }
 
     /* 검색 결과 리스트 (넘치면 스크롤) */
-    #resultList {
-      flex: 1;
-      overflow-y: auto;
-      list-style: none;
-    }
+    #resultList { flex: 1; overflow-y: auto; list-style: none; }
 
     #resultList li {
       padding: 12px 14px;
@@ -125,31 +82,17 @@
       cursor: pointer;
     }
 
-    #resultList li:hover {
-      background: #f5f8ff;
-    }
+    #resultList li:hover { background: #f5f8ff; }
 
-    .place-name {
-      font-size: 15px;
-      font-weight: bold;
-      margin-bottom: 4px;
-    }
+    .place-name { font-size: 15px; font-weight: bold; margin-bottom: 4px; }
+    .place-address { font-size: 13px; color: #666; }
+    .place-extra { font-size: 12px; color: #3b82f6; margin-top: 2px; }
 
-    .place-address {
-      font-size: 13px;
+    #resultList li.message {
+      padding: 14px;
       color: #666;
-    }
-
-    .place-extra {
-      font-size: 12px;
-      color: #3b82f6;
-      margin-top: 2px;
-    }
-
-    .message {
-      padding: 20px 14px;
-      color: #888;
-      font-size: 14px;
+      font-size: 13px;
+      background: #f8fafc;
       cursor: default;
     }
 
@@ -162,9 +105,7 @@
       border-top: 1px solid #eee;
     }
 
-    #pagination:empty {
-      display: none;
-    }
+    #pagination:empty { display: none; }
 
     #pagination a {
       padding: 4px 9px;
@@ -184,15 +125,17 @@
     }
 
     /* 오른쪽 지도 영역 */
-    #mapArea {
-      position: relative;
-      flex: 1;
-      height: 100%;
-    }
+    #mapArea { position: relative; flex: 1; height: 100%; }
+    #map { width: 100%; height: 100%; }
 
-    #map {
-      width: 100%;
-      height: 100%;
+    /* 내 위치 파란 점 */
+    .my-dot {
+      width: 16px;
+      height: 16px;
+      background: #2563eb;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
     }
 
     /* 로드뷰 패널 (지도 아래쪽에 겹쳐서 표시) */
@@ -208,14 +151,8 @@
       border-top: 3px solid #2563eb;
     }
 
-    #roadviewPanel.visible {
-      display: block;
-    }
-
-    #roadview {
-      width: 100%;
-      height: 100%;
-    }
+    #roadviewPanel.visible { display: block; }
+    #roadview { width: 100%; height: 100%; }
 
     #roadviewClose {
       position: absolute;
@@ -242,40 +179,11 @@
     }
 
     /* 마커 팝업 (말풍선) 안쪽 스타일 */
-    .popup {
-      width: 250px;
-      padding: 12px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .popup-title {
-      font-size: 15px;
-      font-weight: bold;
-      margin-bottom: 2px;
-    }
-
-    .popup-address {
-      color: #666;
-      margin-bottom: 4px;
-    }
-
-    .popup-hours {
-      color: #444;
-      margin-bottom: 8px;
-    }
-
-    .popup-section {
-      margin-top: 8px;
-      font-weight: bold;
-    }
-
-    .stall-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 4px;
-    }
+    .popup { width: 250px; padding: 12px; font-size: 13px; line-height: 1.5; }
+    .popup-title { font-size: 15px; font-weight: bold; margin-bottom: 2px; }
+    .popup-address { color: #666; margin-bottom: 6px; }
+    .popup-section { margin-top: 8px; font-weight: bold; }
+    .stall-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 
     .stall {
       width: 24px;
@@ -287,19 +195,9 @@
       border-radius: 4px;
     }
 
-    .stall.free {
-      background: #22c55e;
-    }
-
-    .stall.busy {
-      background: #ef4444;
-    }
-
-    .popup-note {
-      margin-top: 8px;
-      font-size: 11px;
-      color: #999;
-    }
+    .stall.free { background: #22c55e; }
+    .stall.busy { background: #ef4444; }
+    .popup-note { margin-top: 8px; font-size: 11px; color: #999; }
 
     .popup-roadview {
       width: 100%;
@@ -322,13 +220,6 @@
       <div id="tabBar">
         <button class="tab-button active" id="tabGoyang">고양시 확인</button>
         <button class="tab-button" id="tabRegion">지역명으로 검색</button>
-      </div>
-
-      <!-- 탭 1 에서만 보이는 엑셀 파일 선택 -->
-      <div id="excelBar" class="visible">
-        <div>공중화장실현황 엑셀 파일을 직접 고를 수도 있어요</div>
-        <input id="excelInput" type="file" accept=".xls,.xlsx">
-        <div id="excelStatus">엑셀 데이터를 불러오는 중...</div>
       </div>
 
       <!-- 탭 2 에서만 보이는 검색창 -->
@@ -354,754 +245,27 @@
     </div>
   </div>
 
-  <!-- 엑셀 파일을 읽기 위한 라이브러리 (SheetJS) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
   <!--
     카카오 지도 SDK
     - autoload=false : 아래에서 kakao.maps.load()로 직접 실행 (로딩 오류 방지)
-    - libraries=services : 장소 검색 기능에 필요
+    - libraries=services : 장소 검색, 주소 변환에 필요
+    - libraries=clusterer : 마커가 많을 때 묶어서 보여주는 기능
   -->
-  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=654464dfc5d446f2196b6b0a69e4ba29&libraries=services&autoload=false"></script>
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=654464dfc5d446f2196b6b0a69e4ba29&libraries=services,clusterer&autoload=false"></script>
 
   <script>
     // ============================================================
     // 1. 설정값
     // ============================================================
-
-    // index.html 과 같은 폴더에 두면 자동으로 읽는 엑셀 파일 이름
-    var EXCEL_FILE_NAME = "공중화장실현황_제공표준_.xls";
-
-    // 지도 레벨 (숫자가 작을수록 확대됨)
-    var MAP_LEVEL = 5;
-
-    // 위치 권한을 못 받았을 때 쓸 기본 위치 (고양시청 근처)
-    var DEFAULT_LAT = 37.6584;
+    var MAP_LEVEL = 5;            // 지도 확대 레벨 (숫자가 작을수록 확대)
+    var DEFAULT_LAT = 37.6584;    // 위치 권한이 없을 때 쓸 기본 위치 (고양시청 근처)
     var DEFAULT_LNG = 126.8320;
-
-    // 탭 1에서 보여줄 가까운 화장실 개수
-    var NEARBY_COUNT = 30;
-
-    // 학교로 판단할 글자들 (이 글자가 들어간 화장실은 제외)
-    var SCHOOL_PATTERN = /학교|초등|중학|고등|대학교|유치원/;
-
-    // 엑셀이 없을 때 카카오에서 차례로 검색할 단어들
-    var FALLBACK_KEYWORDS = ["공중화장실", "개방화장실", "화장실"];
+    var NEARBY_COUNT = 30;        // 왼쪽 리스트에 보여줄 가까운 화장실 개수
+    var FAR_DISTANCE = 20000;     // 고양시에서 이 거리(m)보다 멀면 고양시청 기준으로 보여줌
 
     // ============================================================
-    // 2. 전역 변수
+    // 2. 고양시 공중화장실 데이터 (공중화장실현황 엑셀에서 추출, 학교 제외)
+    //    [이름, 압축코드] 형태이고, 압축코드에 위도·경도·변기 수가 들어 있어요.
+    //    아래 decodeToilets() 함수가 읽기 쉬운 형태로 풀어 줘요.
     // ============================================================
-    var map = null;              // 지도 객체
-    var placesService = null;    // 장소 검색 객체
-    var infoWindow = null;       // 마커 클릭 시 뜨는 말풍선
-    var roadview = null;         // 로드뷰 객체
-    var roadviewClient = null;   // 로드뷰 위치 찾기 객체
-    var markers = [];            // 지도 위의 마커 목록
-    var currentPosition = null;  // 현재 위치 (kakao.maps.LatLng)
-    var currentTab = "goyang";   // 현재 선택된 탭 ("goyang" 또는 "region")
-    var searchCounter = 0;       // 탭을 빨리 바꿀 때 이전 결과가 섞이지 않게 막는 번호
-    var shownIds = {};           // 카카오 검색에서 이미 보여준 장소 (중복 방지)
-
-    // 고양시 화장실 데이터
-    // 순서: [이름, 주소, 위도, 경도, 남성 대변기 수, 여성 대변기 수, 개방시간]
-    var GOYANG_TOILETS = [];
-    var dataStatus = "loading";  // "loading"(읽는 중) / "loaded"(성공) / "missing"(없음)
-
-    // ============================================================
-    // 3. 시작: SDK가 완전히 로드된 뒤에 실행
-    // ============================================================
-    if (typeof kakao === "undefined") {
-      // SDK 파일 자체를 못 불러온 경우 안내
-      document.getElementById("map").innerHTML =
-        "<p style='padding:20px;color:#c00;'>카카오 SDK를 불러오지 못했어요.<br>" +
-        "1) 카카오 디벨로퍼스에 Web 도메인 등록<br>" +
-        "2) 카카오맵 사용 설정 ON<br>" +
-        "3) F12 → Network 탭에서 sdk.js 상태 확인</p>";
-    } else {
-      kakao.maps.load(function () {
-        initMap();
-      });
-    }
-
-    // 지도 초기화
-    function initMap() {
-      var defaultPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
-
-      map = new kakao.maps.Map(document.getElementById("map"), {
-        center: defaultPosition,
-        level: MAP_LEVEL
-      });
-
-      placesService = new kakao.maps.services.Places();
-      infoWindow = new kakao.maps.InfoWindow({ zIndex: 5, removable: true });
-      roadviewClient = new kakao.maps.RoadviewClient();
-      roadview = new kakao.maps.Roadview(document.getElementById("roadview"));
-
-      // 이벤트 연결
-      document.getElementById("tabGoyang").addEventListener("click", function () {
-        switchTab("goyang");
-      });
-      document.getElementById("tabRegion").addEventListener("click", function () {
-        switchTab("region");
-      });
-      document.getElementById("searchButton").addEventListener("click", searchRegion);
-      document.getElementById("regionInput").addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
-          searchRegion();
-        }
-      });
-      document.getElementById("roadviewClose").addEventListener("click", closeRoadview);
-      document.getElementById("excelInput").addEventListener("change", handleExcelSelect);
-
-      // 엑셀 자동 불러오기 + 현재 위치 요청을 함께 시작
-      loadExcelAuto();
-      requestCurrentLocation();
-    }
-
-    // ============================================================
-    // 4. 엑셀 데이터 불러오기
-    // ============================================================
-
-    // 같은 폴더의 엑셀 파일을 자동으로 읽기 (Live Server / 웹 서버에서 동작)
-    function loadExcelAuto() {
-      if (typeof XLSX === "undefined") {
-        setDataMissing("엑셀 라이브러리를 불러오지 못했어요.");
-        return;
-      }
-
-      fetch(encodeURI(EXCEL_FILE_NAME))
-        .then(function (response) {
-          if (!response.ok) {
-            throw new Error("파일을 찾지 못했어요");
-          }
-          return response.arrayBuffer();
-        })
-        .then(function (buffer) {
-          applyExcelData(buffer);
-        })
-        .catch(function () {
-          setDataMissing("같은 폴더에서 엑셀을 찾지 못했어요. 위의 '파일 선택'을 눌러 주세요.");
-        });
-    }
-
-    // 사용자가 '파일 선택'으로 엑셀을 고른 경우
-    function handleExcelSelect(event) {
-      var file = event.target.files[0];
-      if (!file) {
-        return;
-      }
-      if (typeof XLSX === "undefined") {
-        setDataMissing("엑셀 라이브러리를 불러오지 못했어요.");
-        return;
-      }
-
-      document.getElementById("excelStatus").textContent = "엑셀 데이터를 읽는 중...";
-
-      var reader = new FileReader();
-      reader.onload = function (loadEvent) {
-        applyExcelData(loadEvent.target.result);
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    // 엑셀 내용을 읽어서 고양시 화장실 목록을 만들고 화면을 다시 그림
-    function applyExcelData(buffer) {
-      try {
-        GOYANG_TOILETS = parseExcel(buffer);
-      } catch (error) {
-        console.log("엑셀 읽기 오류:", error);
-        setDataMissing("엑셀을 읽는 중 오류가 났어요.");
-        return;
-      }
-
-      if (GOYANG_TOILETS.length === 0) {
-        setDataMissing("엑셀에서 고양시 화장실을 찾지 못했어요.");
-        return;
-      }
-
-      dataStatus = "loaded";
-      document.getElementById("excelStatus").textContent =
-        "고양시 화장실 " + GOYANG_TOILETS.length + "곳을 불러왔어요 (학교 제외)";
-      refreshGoyangTab();
-    }
-
-    // 엑셀을 못 읽었을 때
-    function setDataMissing(message) {
-      dataStatus = "missing";
-      document.getElementById("excelStatus").textContent = message;
-      refreshGoyangTab();
-    }
-
-    // 지금 탭 1을 보고 있으면 다시 그리기
-    function refreshGoyangTab() {
-      if (currentTab === "goyang" && currentPosition) {
-        switchTab("goyang");
-      }
-    }
-
-    // 엑셀 파일(buffer)에서 고양시 화장실만 뽑아 배열로 만들기
-    function parseExcel(buffer) {
-      var workbook = XLSX.read(buffer, { type: "array" });
-      var sheet = workbook.Sheets[workbook.SheetNames[0]];
-      var rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-      var result = [];
-
-      for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-
-        var name = String(row["화장실명"]);
-        var roadAddress = String(row["소재지도로명주소"]);
-        var jibunAddress = String(row["소재지지번주소"]);
-        var manager = String(row["관리기관명"]);
-
-        // 고양시 화장실만 사용
-        if (roadAddress.indexOf("고양시") === -1 && jibunAddress.indexOf("고양시") === -1) {
-          continue;
-        }
-
-        // 학교 화장실은 제외
-        if (SCHOOL_PATTERN.test(name) || SCHOOL_PATTERN.test(jibunAddress) || SCHOOL_PATTERN.test(manager)) {
-          continue;
-        }
-
-        // 좌표가 없는 곳은 지도에 표시할 수 없어서 제외
-        var lat = parseFloat(row["위도"]);
-        var lng = parseFloat(row["경도"]);
-        if (isNaN(lat) || isNaN(lng)) {
-          continue;
-        }
-
-        // 대변기 수 (일반 + 장애인용 + 어린이용)
-        var male = toNumber(row["남성용-대변기수"]) +
-                   toNumber(row["남성용-장애인용대변기수"]) +
-                   toNumber(row["남성용-어린이용대변기수"]);
-        var female = toNumber(row["여성용-대변기수"]) +
-                     toNumber(row["여성용-장애인용대변기수"]) +
-                     toNumber(row["여성용-어린이용대변기수"]);
-
-        var address = roadAddress !== "" ? roadAddress : jibunAddress;
-
-        result.push([name, address, lat, lng, male, female, String(row["개방시간"])]);
-      }
-
-      return result;
-    }
-
-    // 값을 숫자로 바꾸기 (빈 칸이나 글자는 0)
-    function toNumber(value) {
-      var number = parseInt(value, 10);
-      return isNaN(number) ? 0 : number;
-    }
-
-    // ============================================================
-    // 5. 현재 위치
-    // ============================================================
-    function requestCurrentLocation() {
-      // 위치 기능을 지원하지 않는 브라우저
-      if (!navigator.geolocation) {
-        currentPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
-        switchTab("goyang");
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        // 성공했을 때
-        function (position) {
-          currentPosition = new kakao.maps.LatLng(
-            position.coords.latitude,
-            position.coords.longitude
-          );
-          map.setLevel(MAP_LEVEL);
-          map.setCenter(currentPosition);
-          switchTab("goyang");
-        },
-        // 실패했을 때 (권한 거부 등)
-        function (error) {
-          console.log("위치 정보를 가져오지 못했어요:", error.message);
-          currentPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
-          alert("위치 권한이 없어서 기본 위치(고양시)로 표시할게요.");
-          switchTab("goyang");
-        }
-      );
-    }
-
-    // ============================================================
-    // 6. 탭 전환
-    // ============================================================
-    function switchTab(tabName) {
-      currentTab = tabName;
-      searchCounter++;
-
-      // 탭 버튼 모양 바꾸기
-      document.getElementById("tabGoyang").classList.toggle("active", tabName === "goyang");
-      document.getElementById("tabRegion").classList.toggle("active", tabName === "region");
-
-      // 탭마다 필요한 입력 영역만 보이게
-      document.getElementById("excelBar").classList.toggle("visible", tabName === "goyang");
-      document.getElementById("searchForm").classList.toggle("visible", tabName === "region");
-
-      // 기존 마커, 리스트, 말풍선, 로드뷰를 모두 지움
-      clearAll();
-
-      if (tabName === "goyang") {
-        showNearbyGoyangToilets();
-      } else {
-        showMessage("지역명을 입력하고 검색 버튼을 눌러 보세요.");
-        document.getElementById("regionInput").focus();
-      }
-    }
-
-    // 마커, 리스트, 페이지 번호, 말풍선, 로드뷰 모두 지우기
-    function clearAll() {
-      for (var i = 0; i < markers.length; i++) {
-        markers[i].setMap(null);
-      }
-      markers = [];
-      shownIds = {};
-      infoWindow.close();
-      closeRoadview();
-      document.getElementById("resultList").innerHTML = "";
-      document.getElementById("pagination").innerHTML = "";
-    }
-
-    // ============================================================
-    // 7. 탭 1: 내 위치 주변의 고양시 화장실
-    // ============================================================
-    function showNearbyGoyangToilets() {
-      if (!currentPosition) {
-        showMessage("위치를 확인하는 중이에요...");
-        return;
-      }
-
-      // 엑셀을 아직 읽는 중이면 기다림 (다 읽으면 자동으로 다시 그려요)
-      if (dataStatus === "loading") {
-        showMessage("엑셀 데이터를 불러오는 중이에요...");
-        return;
-      }
-
-      var bounds = new kakao.maps.LatLngBounds();
-      bounds.extend(currentPosition);
-
-      // 엑셀 데이터가 없으면 카카오 검색으로 대신 보여줌
-      if (GOYANG_TOILETS.length === 0) {
-        showMessage("※ 엑셀 데이터가 없어서 카카오 검색 결과로 보여줘요.");
-        runFallbackSearch(0, bounds, searchCounter);
-        return;
-      }
-
-      var myLat = currentPosition.getLat();
-      var myLng = currentPosition.getLng();
-
-      // 각 화장실까지의 거리를 계산해서 가까운 순으로 정렬
-      var withDistance = GOYANG_TOILETS.map(function (toilet) {
-        return {
-          data: toilet,
-          distance: calcDistance(myLat, myLng, toilet[2], toilet[3])
-        };
-      });
-
-      withDistance.sort(function (a, b) {
-        return a.distance - b.distance;
-      });
-
-      var nearby = withDistance.slice(0, NEARBY_COUNT);
-
-      for (var i = 0; i < nearby.length; i++) {
-        var item = nearby[i];
-        var place = {
-          name: item.data[0],
-          address: item.data[1],
-          lat: item.data[2],
-          lng: item.data[3],
-          maleStalls: item.data[4],
-          femaleStalls: item.data[5],
-          hours: item.data[6],
-          distance: item.distance
-        };
-        addPlace(place, bounds);
-      }
-
-      map.setBounds(bounds);
-    }
-
-    // 엑셀이 없을 때: 카카오 검색을 여러 단어로 차례로 실행해서 결과를 모음
-    function runFallbackSearch(keywordIndex, bounds, myCounter) {
-      if (keywordIndex >= FALLBACK_KEYWORDS.length) {
-        return;
-      }
-
-      var options = {
-        location: currentPosition,
-        radius: 10000,
-        sort: kakao.maps.services.SortBy.DISTANCE
-      };
-
-      placesService.keywordSearch(FALLBACK_KEYWORDS[keywordIndex], function (data, status, pagination) {
-        // 검색 중에 탭을 바꿨다면 결과를 버림
-        if (myCounter !== searchCounter || currentTab !== "goyang") {
-          return;
-        }
-
-        // 결과가 없거나 오류면 다음 검색어로
-        if (status !== kakao.maps.services.Status.OK) {
-          runFallbackSearch(keywordIndex + 1, bounds, myCounter);
-          return;
-        }
-
-        var myLat = currentPosition.getLat();
-        var myLng = currentPosition.getLng();
-
-        for (var i = 0; i < data.length; i++) {
-          // 같은 장소를 두 번 보여주지 않기
-          if (shownIds[data[i].id]) {
-            continue;
-          }
-          shownIds[data[i].id] = true;
-
-          var lat = parseFloat(data[i].y);
-          var lng = parseFloat(data[i].x);
-          var place = {
-            name: data[i].place_name,
-            address: data[i].road_address_name || data[i].address_name,
-            lat: lat,
-            lng: lng,
-            maleStalls: 0,      // 0 이면 시뮬레이션에서 임의로 정함
-            femaleStalls: 0,
-            hours: "",
-            distance: calcDistance(myLat, myLng, lat, lng)
-          };
-          addPlace(place, bounds);
-        }
-        map.setBounds(bounds);
-
-        // 같은 검색어의 다음 페이지(최대 3페이지), 끝나면 다음 검색어
-        if (pagination.current < Math.min(pagination.last, 3)) {
-          pagination.gotoPage(pagination.current + 1);
-        } else {
-          runFallbackSearch(keywordIndex + 1, bounds, myCounter);
-        }
-      }, options);
-    }
-
-    // 두 지점 사이의 거리를 m 단위로 계산 (하버사인 공식)
-    function calcDistance(lat1, lng1, lat2, lng2) {
-      var earthRadius = 6371000;
-      var toRad = Math.PI / 180;
-      var dLat = (lat2 - lat1) * toRad;
-      var dLng = (lng2 - lng1) * toRad;
-      var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
-      return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    // 거리를 보기 좋은 글자로 바꾸기
-    function formatDistance(meters) {
-      if (meters < 1000) {
-        return Math.round(meters) + "m";
-      }
-      return (meters / 1000).toFixed(1) + "km";
-    }
-
-    // ============================================================
-    // 8. 탭 2: 지역명으로 검색 (카카오 장소 검색)
-    // ============================================================
-    function searchRegion() {
-      var region = document.getElementById("regionInput").value.trim();
-
-      if (region === "") {
-        alert("지역명을 입력해 주세요!");
-        return;
-      }
-
-      clearAll();
-      searchCounter++;
-      var myCounter = searchCounter;
-
-      // 카카오 키워드 검색: "지역명 + 공중화장실"
-      placesService.keywordSearch(
-        region + " 공중화장실",
-        function (data, status, pagination) {
-          // 검색 중에 탭을 바꿨다면 결과를 버림
-          if (myCounter !== searchCounter || currentTab !== "region") {
-            return;
-          }
-          handleRegionResult(data, status, pagination);
-        }
-      );
-    }
-
-    // 지역 검색 결과 처리
-    function handleRegionResult(data, status, pagination) {
-      if (status === kakao.maps.services.Status.ZERO_RESULT) {
-        showMessage("검색 결과가 없어요.");
-        return;
-      }
-      if (status !== kakao.maps.services.Status.OK) {
-        showMessage("검색 중 오류가 발생했어요.");
-        return;
-      }
-
-      // 페이지를 넘길 때는 이전 페이지 마커와 리스트만 지움
-      clearMarkersAndList();
-
-      var bounds = new kakao.maps.LatLngBounds();
-
-      for (var i = 0; i < data.length; i++) {
-        var place = {
-          name: data[i].place_name,
-          address: data[i].road_address_name || data[i].address_name,
-          lat: parseFloat(data[i].y),
-          lng: parseFloat(data[i].x),
-          maleStalls: 0,      // 0 이면 시뮬레이션에서 임의로 정함
-          femaleStalls: 0,
-          hours: "",
-          distance: null
-        };
-        addPlace(place, bounds);
-      }
-
-      map.setBounds(bounds);
-      showPagination(pagination);
-    }
-
-    // 마커와 리스트만 지우기 (페이지 번호는 유지)
-    function clearMarkersAndList() {
-      for (var i = 0; i < markers.length; i++) {
-        markers[i].setMap(null);
-      }
-      markers = [];
-      infoWindow.close();
-      document.getElementById("resultList").innerHTML = "";
-    }
-
-    // ============================================================
-    // 9. 장소 하나를 지도(마커)와 리스트에 추가
-    // ============================================================
-    function addPlace(place, bounds) {
-      var position = new kakao.maps.LatLng(place.lat, place.lng);
-
-      var marker = new kakao.maps.Marker({
-        map: map,
-        position: position
-      });
-      markers.push(marker);
-      bounds.extend(position);
-
-      // 왼쪽 리스트 항목 만들기
-      // textContent 를 쓰면 이상한 코드가 들어와도 안전해요
-      var listItem = document.createElement("li");
-
-      var nameDiv = document.createElement("div");
-      nameDiv.className = "place-name";
-      nameDiv.textContent = place.name;
-      listItem.appendChild(nameDiv);
-
-      var addressDiv = document.createElement("div");
-      addressDiv.className = "place-address";
-      addressDiv.textContent = place.address;
-      listItem.appendChild(addressDiv);
-
-      if (place.distance !== null) {
-        var distanceDiv = document.createElement("div");
-        distanceDiv.className = "place-extra";
-        distanceDiv.textContent = "내 위치에서 " + formatDistance(place.distance);
-        listItem.appendChild(distanceDiv);
-      }
-
-      document.getElementById("resultList").appendChild(listItem);
-
-      // 마커를 누르면 팝업, 리스트를 누르면 이동 + 팝업
-      kakao.maps.event.addListener(marker, "click", function () {
-        openPopup(place, marker, position);
-      });
-
-      listItem.addEventListener("click", function () {
-        map.panTo(position);
-        openPopup(place, marker, position);
-      });
-    }
-
-    // ============================================================
-    // 10. 마커 팝업 (이름, 주소, 변기 사용 가능 여부 시뮬레이션)
-    // ============================================================
-    function openPopup(place, marker, position) {
-      var popup = document.createElement("div");
-      popup.className = "popup";
-
-      // 이름
-      var title = document.createElement("div");
-      title.className = "popup-title";
-      title.textContent = place.name;
-      popup.appendChild(title);
-
-      // 주소
-      var address = document.createElement("div");
-      address.className = "popup-address";
-      address.textContent = place.address;
-      popup.appendChild(address);
-
-      // 개방시간 (정보가 불확실하면 '알 수 없음')
-      var hours = document.createElement("div");
-      hours.className = "popup-hours";
-      hours.textContent = "개방시간: " + formatHours(place.hours);
-      popup.appendChild(hours);
-
-      // 변기 사용 가능 여부 시뮬레이션
-      var random = makeRandom(place.name + place.address);
-      var maleCount = place.maleStalls > 0 ? place.maleStalls : 2 + Math.floor(random() * 4);
-      var femaleCount = place.femaleStalls > 0 ? place.femaleStalls : 2 + Math.floor(random() * 4);
-
-      popup.appendChild(makeStallSection("남성 대변기", maleCount, random));
-      popup.appendChild(makeStallSection("여성 대변기", femaleCount, random));
-
-      // 안내 문구
-      var note = document.createElement("div");
-      note.className = "popup-note";
-      note.textContent = "※ 사용 가능 여부는 임의로 만든 시뮬레이션이에요. (초록: 사용 가능, 빨강: 사용 중)";
-      popup.appendChild(note);
-
-      // 로드뷰 버튼
-      var roadviewButton = document.createElement("button");
-      roadviewButton.className = "popup-roadview";
-      roadviewButton.textContent = "로드뷰 보기";
-      roadviewButton.addEventListener("click", function () {
-        openRoadview(position);
-      });
-      popup.appendChild(roadviewButton);
-
-      infoWindow.setContent(popup);
-      infoWindow.open(map, marker);
-    }
-
-    // 개방시간 글자 정리
-    function formatHours(hours) {
-      // 비어 있거나 ":~:" 처럼 의미 없는 값이면 알 수 없음
-      if (!hours || hours.replace(/[:~\s]/g, "") === "") {
-        return "알 수 없음";
-      }
-      return hours;
-    }
-
-    // 변기 칸 상자들을 만드는 함수
-    function makeStallSection(label, count, random) {
-      var wrapper = document.createElement("div");
-
-      var maxShown = 12;                     // 너무 많으면 12칸까지만 그림
-      var shownCount = Math.min(count, maxShown);
-      var freeCount = 0;
-      var row = document.createElement("div");
-      row.className = "stall-row";
-
-      for (var i = 1; i <= shownCount; i++) {
-        var isFree = random() > 0.45;        // 약 55% 확률로 사용 가능
-        if (isFree) {
-          freeCount++;
-        }
-
-        var stall = document.createElement("div");
-        stall.className = "stall " + (isFree ? "free" : "busy");
-        stall.textContent = i;
-        stall.title = i + "번 칸: " + (isFree ? "사용 가능" : "사용 중");
-        row.appendChild(stall);
-      }
-
-      var heading = document.createElement("div");
-      heading.className = "popup-section";
-      var suffix = count > maxShown ? " (총 " + count + "칸 중 " + maxShown + "칸 표시)" : "";
-      heading.textContent = label + ": " + freeCount + "/" + shownCount + " 사용 가능" + suffix;
-
-      wrapper.appendChild(heading);
-      wrapper.appendChild(row);
-      return wrapper;
-    }
-
-    // 장소 이름으로 같은 난수를 만드는 함수
-    // (같은 화장실은 팝업을 다시 열어도 같은 결과가 나오게 해요)
-    function makeRandom(seedText) {
-      var seed = 0;
-      for (var i = 0; i < seedText.length; i++) {
-        seed = (seed * 31 + seedText.charCodeAt(i)) % 2147483647;
-      }
-      return function () {
-        seed = (seed * 16807) % 2147483647;
-        return seed / 2147483647;
-      };
-    }
-
-    // ============================================================
-    // 11. 로드뷰
-    // ============================================================
-    function openRoadview(position) {
-      var panel = document.getElementById("roadviewPanel");
-      var message = document.getElementById("roadviewMessage");
-
-      panel.classList.add("visible");
-      message.textContent = "로드뷰를 불러오는 중...";
-
-      // 마커 근처 50m 안에서 가장 가까운 로드뷰 위치를 찾음
-      roadviewClient.getNearestPanoId(position, 50, function (panoId) {
-        if (panoId === null) {
-          message.textContent = "이 위치 근처에는 로드뷰가 없어요.";
-          return;
-        }
-        message.textContent = "";
-        roadview.setPanoId(panoId, position);
-        // 패널이 막 나타났을 때 크기를 다시 계산해 줘야 화면이 제대로 보여요
-        setTimeout(function () {
-          roadview.relayout();
-        }, 100);
-      });
-    }
-
-    function closeRoadview() {
-      document.getElementById("roadviewPanel").classList.remove("visible");
-      document.getElementById("roadviewMessage").textContent = "";
-    }
-
-    // ============================================================
-    // 12. 페이지 번호, 안내 메시지
-    // ============================================================
-    function showPagination(pagination) {
-      var paginationEl = document.getElementById("pagination");
-      paginationEl.innerHTML = "";
-
-      if (pagination.last <= 1) {
-        return;
-      }
-
-      for (var i = 1; i <= pagination.last; i++) {
-        var link = document.createElement("a");
-        link.textContent = i;
-
-        if (i === pagination.current) {
-          link.className = "current";
-        } else {
-          // 반복문 안에서 i 값을 기억하기 위해 함수로 감싸요
-          link.addEventListener("click", makePageClickHandler(pagination, i));
-        }
-
-        paginationEl.appendChild(link);
-      }
-    }
-
-    function makePageClickHandler(pagination, pageNumber) {
-      return function () {
-        pagination.gotoPage(pageNumber);
-      };
-    }
-
-    // 리스트 영역에 안내 메시지 표시
-    function showMessage(text) {
-      var resultList = document.getElementById("resultList");
-      resultList.innerHTML = "";
-
-      var li = document.createElement("li");
-      li.className = "message";
-      li.textContent = text;
-      resultList.appendChild(li);
-    }
-  </script>
-</body>
-</html>
+    var TOILET_DATA = [["진원프라자","jngg8za"],["웨스턴돔 타워","jgie7wr"],["호수빌딩","jm2fq23"],["지평프라자","jm01ue3"],["일호골든타워","jkxy09h"],["한경(알파휘트니스센터)","hethcoe"],["크리스탈빌딩 백석동","h31l82r"],["코스트코 일산점 2층","gmyw7v7"],["코스트코 일산점 1층","gmyw7v7"],["이지로 빌딩","ixnoy7f"],["백석레저타운","gyvk84b"],["남정씨티프라자 3차","gyvk83d"],["효성레저스 오피스텔","gszlnze"],["현대오일뱅크","ibwa5ir"],["중산실내수영장2","nr6gfau"],["스타 골프클럽","mkrw4uc"],["타워빌딩","lsbv7v5"],["중앙프라자 B동","lmz0c6a"],["영진프라자","lmu8y9p"],["세훈프라자","lnwcrii"],["중앙프라자 A동","lo5vjvl"],["풍동미래타워","lkq1aa1"],["풍동프라자","lk9dm3v"],["진넥스","lk4m7yv"],["대한골프클럽","qtgq5o3"],["클린파크주유소","stts5zr"],["진 골프장","r7r2yz6"],["진골프클럽","r7r2yzr"],["동일산주유소","r9c7xv9"],["영 에버 골프연습장","osmdw82"],["양우드라마시티","jh67tzd"],["청용오일뱅크","laqipfv"],["풍림주유소","kteitra"],["현대 에뜨레보","javzdkv"],["노래하는분수대","j2cqgsv"],["일산소방서","ktbxbj7"],["백마역","jx6nz67"],["풍산역","mh2immv"],["백석역","h4auglb"],["일산동구청 1층 화장실","k083k31"],["일산동구청 2층 화장실-1","k083k2q"],["일산동구청 2층 화장실-2","k083k31"],["일산동구청 4층 화장실","k083k2q"],["식사동행정복지센터 지하1층 화장실","neeycc7"],["일산방송COMPLEX","j5j2etv"],["SK엠시티드라마파크빙상장","j5j2et1"],["호수공원주유소","hznjfoe"],["호수그린","k6iaj07"],["우인 2차","kwu45wy"],["성우골프클럽","l1egae8"],["성우사카르타워","l1egagb"],["동하넥서스","l2e6ddf"],["한강세이프빌","kwpddsx"],["우림보보카운티 1차","kqtf99p"],["우림보보카운티 2차","kjvd9og"],["라페스타 쇼핑몰 E","klnnuu1"],["엔담프라자","kt2dter"],["이마트(풍산역)","mrl6g9n"],["하임빌 로데오빌딩","kgfips7"],["한라밀라트A동","km6pdgd"],["더불어충전소","un4ac8v"],["남정시티프라자 2","kp14crf"],["(주)중산힐스(청소년수련관)","rpqhuof"],["(주)중산힐스(골프연습장)","rnf5d33"],["라페스타 쇼핑몰 C1","kghwrvr"],["정안프라자","kv47i0t"],["한라밀라트 C동","kh0y4pb"],["한라밀라트B동","kk7995b"],["백마골프타운","kbsz36v"],["창일주유소","ngbwu3c"],["중산주유소","o9rky11"],["제19주유소","m0gwav6"],["형진에너지","wetpyqk"],["은곡주유소","vfkbu9f"],["코오롱레이크폴리스3 B동","kpyfz4o"],["코오롱레이크폴리스3 A동","ksqgpo8"],["일산빌딩","m7cfmkb"],["현대밀라트 A동","gi2ojlp"],["현대밀라트B동","gdn47gl"],["현대밀라트 C동","g6fixod"],["백석배드민턴장","heag2fz"],["라페스타 쇼핑몰 A","kavhkdh"],["마두도서관","lfw38w3"],["백석도서관","hv5rl67"],["식사도서관","n65a2zn"],["광장화장실","l19nf87"],["장미화장실","l19nf6t"],["회화나무화장실","l19nf6j"],["두루미화장실","l19nf6t"],["악어화장실","l19nf73"],["폭포화장실","l19nf6j"],["백석공원(교통공원)","gzsy3ky"],["알미공원","hjs3a5o"],["마두공원","j8kou4x"],["낙민공원","ie9w9jf"],["일산문화공원","k49cu83"],["정발산공원(청사인근)","l445hei"],["정발산공원(체육공원)","lfw38tp"],["은행마을공원","masecis"],["달맞이공원","mwhhp1s"],["성아공원","ngbvess"],["어침이공원","ovjabwy"],["식사중앙공원","nfxqb39"],["하늘장미어린이공원","nygd0n0"],["모범어린이공원","jf23206"],["향나무어린이공원","hdoyy1y"],["청천어린이공원","iu5kzke"],["백송어린이공원","iig0ydj"],["부촌어린이공원","iig0ydi"],["벚나무어린이공원","ln1dsx9"],["목련어린이공원","mkg1gif"],["참나무어린이공원","lbq60x1"],["방기어린이공원","i3w2kdy"],["말머리어린이공원","ivxt2wo"],["장항어린이공원","ld6eqrv"],["두루미어린이공원","mbb9kjm"],["수정어린이공원","lqh3wtz"],["밤가시어린이공원","lyewulw"],["중산오름어린이공원","q9jiu0c"],["올림푸스어린이공원","nwvdnn5"],["간이어린이공원","ho5al6f"],["능안어린이공원","k71g0cr"],["장항야구장","hqpwui5"],["크리스탈빌딩 장항동","k6b5raf"],["엔조이쓰리칼라","k4q0bqc"],["우림로데오스위트","k8owqm7"],["하이베라스","jnl7b7v"],["호수광장빌딩","jw6tarb"],["쌍용플레티넘","l4n5g26"],["청원레이크빌","l2gkblq"],["현대휘트니스센타","kw3ye6f"],["허유재병원","kr2yft7"],["위너스 21 2차","k5s3odb"],["일신프라자","qgth8f3"],["중앙 하이츠빌","jymwf29"],["에메랄드빌딩","k8midcv"],["라페스타 쇼핑몰 D","keigni9"],["마이다스 오피스텔","khtjmwt"],["현대타운빌","jkhaseh"],["뉴코아(일산점)","j7ug4ej"],["(주)모아나빌딩","j2f5tg6"],["형지 제3빌딩","j08kn4f"],["일산올림픽 스포츠센터","iutatp7"],["동양생명보험","iiz0f7v"],["GS 항공대 주유소","9pir6bq"],["LPG(GS) 충전소","aw6rnju"],["상암에너지","5dq9oka"],["덕양주유소","drwsy1c"],["흥도동주민센터 화장실 1층","hgaah6q"],["흥도동주민센터 화장실 2층","hgaah6r"],["롯데마트화장실","f8rldfe"],["화정1동주민센터 화장실 1층","heapzhe"],["화정1동주민센터 화장실 2층","heapzhe"],["화정역광장","flzwk93"],["세이브존화정 화장실1","fi3dwlm"],["세이브존화정 화장실2","fi3dwlb"],["세이브존화정 화장실4","fi3dwlm"],["세이브존화정 화장실6","fi3dwln"],["옥빛공원 화장실","fb2z1w7"],["꽃우물공원 화장실","ed2u59e"],["화정18호 어린이공원","egdwp5d"],["화정13호 어린이공원","ge8taic"],["화정12호 어린이공원","hasi9ms"],["화수공원 화장실","hb6tgvd"],["화정2동주민센터 2층","esyfyhk"],["화정2동주민센터 1층","esyfyhv"],["민방위교육장 2층","eri290p"],["민방위교육장 1층","eri290p"],["화전역 화장실","9srfv6u"],["성사1동주민센터 화장실","j7e5tez"],["성사공원(관리사옆)","kpywrzf"],["원신동주민센터 1층","netm2cb"],["행주역사공원","8ttpuzh"],["행주산성제중간 화장실","8glgm7n"],["행주산성제2주차장 화장실","8glgm80"],["충장공원(풋살구장)","budsbkv"],["행신9호 어린이공원","c9ln7m8"],["행신8호 어린이공원","brh3cfx"],["행신5호 어린이공원","cje2bq8"],["행신4호 어린이공원","c4rqvsq"],["행신3호 어린이공원","chjcwie"],["행신1호 어린이공원","ccwmwfc"],["서정4호 어린이공원","bs9qhub"],["삼성화재 일산사옥","ih1y6ar"],["올리브상가","ib3ml3b"],["흰돌복합상가","hxo76dj"],["이마트(일산점)","hxo76dq"],["폭스바겐 전시장","hc687j9"],["영림브레아 2차","h3yxktq"],["홈플러스(고양터미널점)","h4hzzub"],["현대밀라트 2차 A동","gpojoue"],["현대밀라트2차B동","glz6qyy"],["해태스포츠센타","qemvs35"],["센트럴 프라자","jwze9af"],["낙원프라자","joz8a8z"],["강호당구클럽","joz8a8z"],["파크프라자","jqfmeej"],["오거리공원","n5xtvis"],["회화공원","l99tya4"],["궁골공원","lyxvtf7"],["문화공원","n0nb86r"],["이물재공원","mp9qfzw"],["송산동 행정복지센터 화장실(3층)","pw6ahgg"],["송산동 행정복지센터 화장실(2층)","pw6ahgg"],["송포동 행정복지센터 화장실(2층)","mb8n3zu"],["주엽2동 행정복지센터 화장실(3층)","mt3smgb"],["주엽2동 행정복지센터 화장실(1층)","mt3smgn"],["탄현동 행정복지센터 화장실(3층)","qio314r"],["탄현동 행정복지센터 화장실(1층)","qio3152"],["일산3동 행정복지센터 화장실(3층)","nc0ylsx"],["일산3동 행정복지센터 화장실(1층)","nc0ylti"],["일산2동 행정복지센터 화장실(3층)","oqkgs50"],["일산2동 행정복지센터 화장실(2층)","oqkgs50"],["일산2동 행정복지센터 화장실(1층)","oqkgs50"],["일산1동 행정복지센터 화장실(3층)","p7wd7a6"],["일산1동 행정복지센터 화장실(2층)","p7wd7a0"],["일산1동행정복지센터화장실(1층)","p7wd7ah"],["일산서구청 화장실(5층)","ni8o8ux"],["일산서구청 화장실(3층)","ni8o8ux"],["일산서구청 화장실(2층)","ni8o8vr"],["일산서구청 화장실(지하1층)","ni8o8tw"],["신풍프라자","k73qf5n"],["식사동행정복지센터 장애인 화장실","neeycci"],["식사동행정복지센터 2층 화장실","neeycca"],["식사동행정복지센터 3층 화장실","neeycc9"],["식사동행정복지센터 4층 화장실","neeycc9"],["중산동행정복지센터","q275vhv"],["정발산동 행정복지센터 1층","mi4ky36"],["정발산동 행정복지센터 3층","mi4ky36"],["장항1동 행정복지센터 화장실","gu6deeh"],["마두2동 행정복지센터 1층~3층 각 남녀화장실(6개)","j1aq3oi"],["백석1동행정복지센터 화장실","ib3p7hj"],["마두1동행정복지센터 2층 화장실","jfzg61u"],["고봉동 행정복지센터 화장실","rtg5lmd"],["장항2동행정복지센터 1층","icr5imk"],["장항2동행정복지센터 3층","icr5imj"],["장항2동행정복지센터 4층","icr5iml"],["백석2동 행정복지센터 2층","h99fxfp"],["백석2동 행정복지센터 4층","h99fxfp"],["풍산동행정복지센터 화장실","kyp08wk"],["숲향기공원","8hsowb3"],["향동체육공원","ar17jlw"],["행신나루공원","c48rqr5"],["서두물공원(생태연못 옆)","c8jl0s1"],["서정공원(인라인스케이트장 옆)","cdmy2o6"],["성라공원(7지역 관리사건물)","hufvdjc"],["성라공원(9지역)","i89m1jl"],["성라공원(5지역)","i89m1jl"],["고양공원(배드민턴장 근처)","smyqgx8"],["고양공원(관리동화장실)","smyqgx9"],["별빛공원(관리사 옆)","f9k4zrm"],["달빛공원(공원입구 좌측)","hgewysh"],["가라산공원(경로당)","dtd8h7c"],["가라산공원(관리사)","dtd8h7c"],["소만공원","bzm1epf"],["고양어린이박물관","elt7okj"],["어울림뜨레","i7elb2f"],["어울림누리공연장","i7elb4j"],["화정어린이도서관 2층","f81d9r5"],["화정어린이도서관 1층","f81d9rz"],["화정도서관 2층","g546iqd"],["화정도서관 1층","g546iqn"],["화정도서관 지하1층","g546iqd"],["행신어린이도서관 3층","bwmvach"],["행신어린이도서관 2층","bwmvach"],["행신도서관(3층)","d06wwm3"],["행신도서관(2층)","d06wwmd"],["원당도서관 3층","jj8fn3c"],["원당도서관 1층","jj8fn38"],["신원도서관 2층","ldznbah"],["신원도서관 1층","ldznbat"],["삼송도서관 3층","i63985l"],["삼송도서관 1층","i639866"],["덕양구청6층","g2lnlob"],["덕양구청5층","g2lnlob"],["덕양구청3층","g2lnlob"],["덕양구청2층(대강당)","g2lnloc"],["덕양구청2층(주계단)","g2lnlob"],["덕양구청1층(세무민원)","g2lnloc"],["덕양구청1층(일반민원)","g2lnlob"],["도내동주유소","bdzdhbm"],["GS LPG 충전소","ao48wif"],["GS 주유소","8zsdrug"],["강선공원","m9l9gwt"],["주엽공원","lt1vmxn"],["성저근린공원","obclhv6"],["대화레포츠공원 화장실","m1bfdp1"],["샘물공원","s8wz3kt"],["탄중공원","qi51pls"],["숯고개 어린이공원","qghhd33"],["황룡공원","r4tvnf0"],["강서공원","mgc3w86"],["장성공원","natzw14"],["새말공원","onnkggz"],["백암공원","lyvf4wx"],["오마공원","njfmqou"],["강재공원","mipx0v0"],["일산시장","ox8yjgu"],["㈜휴세코 일산지점 희망충전소","ras66vq"],["한울㈜서일산주유소","l6hlcrr"],["한양상가","ljq4khh"],["레이크타운","lkzd41f"],["롯데마트 주엽점","mmr51k7"],["케이엘페트로 덕이충전소","s0dnaks"],["홈플러스 킨텍스점","lohi4f5"],["NH농협주유소","ojqzkus"],["신일산충전소","pcle3xe"],["뉴서울프라자(외부)","lcpoon6"],["뉴서울프라자(내부)","lcpoomg"],["㈜한미석유 덕이동주유소","qh0dtoi"],["㈜명주 로데오주유소","pxykhme"],["주엽역","m4reofd"],["탄현역","qg0s3fb"],["일산역","oa5t4dj"],["주엽어린이도서관","lrnueat"],["가좌도서관","p0t9cdb"],["한뫼도서관","qdn4y3b"],["대화도서관","o2vr2lr"],["고양체육관","mwjislj"],["고양종합운동장","mwjislj"],["고양인공암벽장","mwjiska"],["성저파크골프장","mwjisjq"],["고양리틀야구장","mwjisjc"],["국가대표야구장","mwjislj"],["킨텍스캠핑장","kseemsd"],["고양문화의집 지하1층 화장실","q5kkjsn"],["고양문화의집 1층 화장실","q5kkjsn"],["고양문화의집 3층화장실","q5kkjt1"],["한산공원","qtz7ggo"],["덕이공원","rw5cyus"],["탄현공원","rooc3ou"],["국제전시장공원","lruwegn"],["고양시민피크닉공원","ovgiyuf"],["대화공원","mttyaar"],["M&G프라자","dhiwhh5"],["원전주유소","io9xq9r"],["영원주유소","cgcfzam"],["덕양노인종합복지관","i3fplcz"],["서강프라자자","j2p1z1b"],["능곡전화국","cgcfunb"],["남정시티프라자 6차","bro75ov"],["대경프라자","g7d4h6b"],["건영캐스빌 오피스텔","eryp8tk"],["영프라자빌딩(화정)","fdgoov6"],["동원텔상가","fnnfk08"],["자유제일충전소","9xg8yv7"],["능곡주유소","dosrl72"],["원흥주유소","gjoa62a"],["한솔주유소","sqzquy8"],["씨네마플러스","fr3a3i8"],["아이프라자","do2o9b5"],["센트럴빌딩","blnhjdr"],["신영프라자","bu1xqe2"],["세화주유소","suymzgn"],["평진 LPG충전소","uuojxvu"],["명성LPG충전소","r29t2yf"],["그린가스충전소","m6aptkl"],["비전프라자","j23mgkr"],["대덕생태공원","72iqy3d"],["강제공원","mipx0uy"],["중산체육공원(중앙)","q02y9uh"],["중산체육공원(운동장)","q02y9uh"],["정발산공원(잔디광장)","kn8vznp"],["공원관리사업소","kn8vzne"],["검바골공원(신도시1호)","i4jx99v"],["성사공원(체육관)","kpywrzq"],["충장공원(풋살구장)","budsbl5"],["석탄공원","engyl86"],["내유동문화공원","xe0z5h8"],["일산대우메종리브르","khhm00h"],["일산제일주유소","rpelrvv"],["애비뉴상가 화장실","mhbuph7"],["예일큰프라자 화장실","q0h503r"],["패션1번지","qa9k7hf"],["후동공원","nzn590b"],["행신2지구4호어린이공원 화장실","bs9qhtz"],["준성타운","pgkx68v"],["관산동 복지회관","phdikwj"],["벽제주유소","qdsdy43"],["프라자리치","rndhu6c"],["고양동 복지회관","s1787sc"],["고양본우체국","sa7456b"],["삼송뉴시티주유소","hldx41r"],["비전프라자","dn5c4yn"],["능곡 삼성프라자","do2og2n"],["송악모노빌","bw1dzak"],["행복한 교회","p74d0sg"],["희성프라자","djkqjzr"],["용신프라자","nidkl1n"],["서울프라자","nn9sjnq"],["한성프라자","nqih9fi"],["보성상가","na3w59g"],["예일빌딩","ndeylez"],["오리온프라자","nh4beel"],["제일프라자","njrkkkz"],["성일상가","nkraibz"],["문촌상가","nmxvjz6"],["문화타운","nlhhj60"],["문화촌상가","npblsu1"],["롯데프라자","npunn2n"],["경일프라자","nru3u4e"],["정발상가","ntr5zdg"],["뉴일산코아","n8dz6sb"],["두레빌딩","n8pvtuj"],["뉴타운상가","niwm2ij"],["현대프라자","nsykwbb"],["백암빌딩","nu0okan"],["제일빌딩","okjpcmn"],["원릉빌딩","ksm51e8"],["코스모프라자","jexm2uj"],["삼혜그린뷰","jfskgue"],["주교우체국","joq30d7"],["고양시청 어린이집","k76i0v6"],["봄산부인과","e6nuehz"],["청한프라자","e8z750p"],["고양경찰서(본관)","egptxg2"],["예일클리닉 빌딩","cbdvtdz"],["꽃마을주유소","keuphbj"],["삼호주유소","go8iknr"],["행신2지구3호어린이공원 화장실","ck1z9kn"],["행신2지구1호어린이공원 화장실","ct8yfhf"],["번데미 공원","c2x11fi"],["관산동주민센터 화장실 2층","pd2olf2"],["능곡동주민센터 화장실 2층","dcw3lni"],["능곡동주민센터 화장실 1층","dcw3lnt"],["능곡역화장실","cntj2l0"],["롯데마트고양점 화장실","dtd780t"],["행신2동주민센터 화장실","bz2x7c7"],["소만어린이공원","c858buj"],["행주동주민센터 화장실 1층","cks09fj"],["지도공원1","dy28yem"],["행신3동주민센터 화장실 2층","e1aztc7"],["고양소방서 화전119안전센터 공중화장실","8jkxhpl"],["행신1동 주민센터 화장실","dag39y5"],["화전동주민센터 화장실 2층","972c2de"],["배다리(주교11호) 어린이공원","kog1tx6"],["은빛 공원","g73mgrq"],["고양시여성회관 2층","cd1fqiq"],["어울림누리 브릿지 외곽화장실","i7elb31"],["어울림누리 별무리경기장","i7elb3e"],["어울림누리 수영장/체육관","i7elb4j"],["신원체육공원","n5htq3r"],["고양소방서 행신119안전센터 1층 화장실","bza4mu7"],["강매역 화장실","bh7zpdl"],["행신역화장실","bgk49a6"],["성사3호 어린이공원","io0c1m2"],["성사1호 어린이공원","j0ucf9c"],["덕양종합사회복지관 화장실1","d48ap8v"],["덕양종합사회복지관 화장실3","d48ap8v"],["덕양종합사회복지관 화장실4","d48ap8v"],["덕양종합사회복지관 화장실6","d48ap95"],["삼송2호어린이공원 화장실","gwdl9z8"],["삼송역화장실","iz4sqmu"],["지축차량기지화장실","iixe3ef"],["덕수공원","hbiz1cp"],["달걀부리 어린이공원","gwdl9zi"],["이마트화장실","f71os3v"],["고양시청 제2별관 2층 화장실","k5e78c6"],["고양시청 제2별관 1층 화장실","k5e78c6"],["하나로유통 화장실1","i4df64f"],["하나로유통화장실3","i4df652"],["동산꽃맞이공원 화장실","hh5gce3"],["대덕동주민센터","6j7k7o5"],["원흥역 화장실","ijne798"],["이케아고양점 2층","emjln9b"],["고양시청 제1별관 4층 화장실","jps5z6y"],["고양시청 제1별관 1층 화장실","jps5z6y"],["고양시청 제1별관 3층 화장실","jps5z6y"],["고양시청 신관 5층 화장실","jx6w0o0"],["고양시청 신관 4층 화장실","jx6w0o0"],["고양시청 신관 2층 화장실","jx6w0ne"],["고양시청 신관 지하1층 화장실","jx6w0no"],["고양시청 본관 4층 화장실","jx6w0nq"],["고양시청 본관 3층 화장실","jx6w0nq"],["고양시청 본관 2층 화장실","jx6w0nq"],["고양시청 본관 1층 화장실","jx6w0o1"],["고양시문예회관 공중화장실","jx6w0od"],["스타필드고양화장실1","hudsguf"],["스타필드고양 화장실3","hudsgtk"],["스타필드고양화장실5","hudsgtl"],["스타필드고양 화장실6","hudsgtk"],["스타필드고양화장실8","hudsgt8"],["스타필드고양 화장실10","hudsguf"],["스타필드고양화장실11","hudsgtv"],["스타필드고양 화장실13","hudsguf"],["원당역 화장실","j0bco08"],["고양소방서 1층 화장실","j9dk5kg"],["행신3우체국","e2trpws"],["행신우체국","bz2x95m"],["골드프라자","bx88kuj"],["행신동 센스빌 1차","bl96pvo"],["유정주유소","dfc561j"],["지축우체국","igvmg7l"],["넉넉칸주유소","jr92tss"],["주영주유소","nz0grc3"],["서오능가스충전소","fwzglda"],["원신주유소","p6zihcy"],["원당충전소","m63kfw3"],["노란주유소","m6aptk0"],["서울개인택시조합 제4복지충전소","f0df6tp"],["너멍골주유소","nbg5q92"],["설문가스충전소","wtwpoyf"],["원흥제2주유소","qr7q4zb"],["보광주유소","wddzbvv"],["올림픽컨트리클럽","vkxul3v"],["벽제주유소","umoa2eu"],["시내주유소","rzogvbs"],["1,2,3 골프장","gt52s52"],["창릉주유소","h7amg6n"],["지영동 국궁장 화장실","vn1pgh8"],["일산서구보건소","opn47id"],["로데오타운","qcnayh7"],["현산프라자","py5tznn"],["선명프라자","pr30ew3"],["부건프라자","pmwxks6"],["풍성프라자","pmg9d63"],["예일센스빌","pn42lwk"],["태창빌딩","po8k3ps"],["우경드림빌","pra3xfo"],["대림프라자","q058gxb"],["유일프라자","q14yi5b"],["나산프라자","py3ej9z"],["대림프라자","pycxdts"],["탄현우체국","qhqqpjr"],["수암월드","qxjwfmr"],["월드스타프라자","qmu3emu"],["휴엔코아","r6jsc6v"],["탄현주유소","qtgbn2j"],["백마프라자","mr4dh3n"],["동산주유소","hduep1m"],["동원주유소","esykrsp"],["한강충전소","5v4korq"],["상암주유소","5d77x2a"],["동화프라자","qlwsplv"],["고양동주유소","t0zh4tr"],["동아 LPG","qusovvm"],["동원2주유소","v3j96lr"],["하늘주유소","tsavw20"],["관산프라자","pthb33b"],["태인프라자","phi94y7"],["고양가스충전소","tfj299n"],["신우에너지","migncw3"],["삼일주유소","pfkxeib"],["동국대병원","n8gkjqr"],["신우주유소","t8s2d47"],["신우에너지㈜","rk1pi7y"],["성석제일주유소","tpkv2sb"],["우리들주유소","wcz0vuw"],["보민프라자","lmphjuf"],["문봉주유소","skrnb2z"],["화인빌딩","mbdjw5r"],["아크리아","lkl9zxz"],["디아뜨 크리스탈","gm1jc7c"],["고양우편집중국","gfyfqun"],["브라운스톤","g3l42fq"],["비잔티움 일산2단지","g8cl1er"],["성우 아뜨리움 오피스텔","gheuxcg"],["신성 메디칼 타운","lm6frv7"],["그린메디피아","lnkg6mb"],["웅신아트프라
