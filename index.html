@@ -1,3 +1,58 @@
+import pandas as pd
+import json
+import re
+
+# 엑셀 읽기
+df = pd.read_excel("공중화장실현황_제공표준_.xls")
+
+# 고양시 화장실만 고르기
+road = df["소재지도로명주소"].fillna("")
+jibun = df["소재지지번주소"].fillna("")
+goyang = df[road.str.contains("고양시") | jibun.str.contains("고양시")].copy()
+
+# 좌표가 없는 곳은 지도에 표시할 수 없어서 제외
+goyang = goyang.dropna(subset=["위도", "경도"])
+
+# 학교 화장실 제외
+school = re.compile(r"학교|초등|중학|고등|대학교|유치원")
+is_school = (
+    goyang["화장실명"].fillna("").str.contains(school)
+    | goyang["소재지지번주소"].fillna("").str.contains(school)
+    | goyang["관리기관명"].fillna("").str.contains(school)
+)
+goyang = goyang[~is_school]
+
+# 숫자로 바꾸는 함수 (빈 칸은 0)
+def to_number(value):
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return 0
+
+rows = []
+for _, row in goyang.iterrows():
+    male = (to_number(row["남성용-대변기수"])
+            + to_number(row["남성용-장애인용대변기수"])
+            + to_number(row["남성용-어린이용대변기수"]))
+    female = (to_number(row["여성용-대변기수"])
+              + to_number(row["여성용-장애인용대변기수"])
+              + to_number(row["여성용-어린이용대변기수"]))
+
+    address = row["소재지도로명주소"] if pd.notna(row["소재지도로명주소"]) else row["소재지지번주소"]
+    hours = row["개방시간"] if pd.notna(row["개방시간"]) else ""
+
+    rows.append([
+        str(row["화장실명"]), str(address),
+        round(float(row["위도"]), 6), round(float(row["경도"]), 6),
+        male, female, str(hours)
+    ])
+
+# 자바스크립트 파일로 저장
+with open("toilets-data.js", "w", encoding="utf-8") as f:
+    f.write("var GOYANG_TOILETS = " + json.dumps(rows, ensure_ascii=False, separators=(",", ":")) + ";\n")
+
+print("저장한 화장실 수:", len(rows))
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -336,18 +391,21 @@
   -->
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=654464dfc5d446f2196b6b0a69e4ba29&libraries=services&autoload=false"></script>
 
+  <!-- 고양시 공중화장실 데이터 (같은 폴더의 toilets-data.js) -->
+  <script src="toilets-data.js"></script>
+
   <script>
     // ============================================================
     // 1. 데이터와 설정값
     // ============================================================
 
-    // 고양시 공중화장실 데이터 (공중화장실현황 엑셀에서 추출)
-    // 순서: [이름, 주소, 위도, 경도, 남성 대변기 수, 여성 대변기 수, 개방시간]
-    // ※ 아래는 예시 2줄이에요. 데이터가 30곳보다 적으면 카카오 검색으로 자동으로 채워요.
-    var GOYANG_TOILETS = [
-      ["진원프라자", "경기도 고양시 일산동구 정발산로 27", 37.656938, 126.771836, 2, 2, ":~:"],
-      ["웨스턴돔 타워", "경기도 고양시 일산동구 정발산로 24 (장항동, 웨스턴돔1)", 37.655893, 126.771971, 2, 3, "24시간"]
-    ];
+    // 고양시 공중화장실 데이터는 toilets-data.js 파일에서 불러와요.
+    // (index.html과 같은 폴더에 toilets-data.js를 두세요)
+    // 데이터 순서: [이름, 주소, 위도, 경도, 남성 대변기 수, 여성 대변기 수, 개방시간]
+    // 파일을 못 불러왔을 때를 대비해 빈 배열로 시작해요.
+    if (typeof GOYANG_TOILETS === "undefined") {
+      var GOYANG_TOILETS = [];
+    }
 
     // 지도 레벨 (숫자가 작을수록 확대됨)
     var MAP_LEVEL = 5;
@@ -502,6 +560,11 @@
       var myLat = currentPosition.getLat();
       var myLng = currentPosition.getLng();
 
+      // 데이터 파일을 못 불러왔으면 안내 (카카오 검색 결과로 대신 채워져요)
+      if (GOYANG_TOILETS.length === 0) {
+        showMessage("※ toilets-data.js를 불러오지 못해 카카오 검색 결과만 보여줘요.");
+      }
+
       // 각 화장실까지의 거리를 계산해서 가까운 순으로 정렬
       var withDistance = GOYANG_TOILETS.map(function (toilet) {
         return {
@@ -535,7 +598,7 @@
 
       map.setBounds(bounds);
 
-      // 내장 데이터가 부족하면(예: 예시 데이터만 붙여 넣은 경우) 카카오 검색으로 채움
+      // 내장 데이터가 부족하면 카카오 검색으로 채움
       if (GOYANG_TOILETS.length < NEARBY_COUNT) {
         fillWithKakaoSearch(bounds, searchCounter);
       }
