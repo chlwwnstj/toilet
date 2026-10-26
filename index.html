@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>장소 검색 서비스</title>
+  <title>화장실 찾기 서비스</title>
 
   <style>
     /* 기본 여백 제거 */
@@ -19,7 +19,7 @@
       font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
     }
 
-    /* 화면 2분할: 왼쪽(검색) + 오른쪽(지도) */
+    /* 화면 2분할: 왼쪽(탭+리스트) + 오른쪽(지도) */
     #container {
       display: flex;
       width: 100%;
@@ -36,15 +36,43 @@
       background: #ffffff;
     }
 
-    /* 검색창 영역 */
-    #searchForm {
+    /* 탭 버튼 영역 */
+    #tabBar {
       display: flex;
+      border-bottom: 2px solid #eee;
+    }
+
+    .tab-button {
+      flex: 1;
+      padding: 14px 8px;
+      font-size: 15px;
+      color: #666;
+      background: #fafafa;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+    }
+
+    .tab-button.active {
+      color: #2563eb;
+      font-weight: bold;
+      background: #ffffff;
+      border-bottom-color: #2563eb;
+    }
+
+    /* 지역명 검색창 (탭 2에서만 보임) */
+    #searchForm {
+      display: none;
       gap: 6px;
-      padding: 14px;
+      padding: 12px 14px;
       border-bottom: 1px solid #eee;
     }
 
-    #keywordInput {
+    #searchForm.visible {
+      display: flex;
+    }
+
+    #regionInput {
       flex: 1;
       padding: 10px 12px;
       font-size: 15px;
@@ -94,8 +122,8 @@
       color: #666;
     }
 
-    .place-phone {
-      font-size: 13px;
+    .place-extra {
+      font-size: 12px;
       color: #3b82f6;
       margin-top: 2px;
     }
@@ -104,6 +132,7 @@
       padding: 20px 14px;
       color: #888;
       font-size: 14px;
+      cursor: default;
     }
 
     /* 페이지 번호 */
@@ -115,11 +144,14 @@
       border-top: 1px solid #eee;
     }
 
+    #pagination:empty {
+      display: none;
+    }
+
     #pagination a {
       padding: 4px 9px;
       font-size: 13px;
       color: #333;
-      text-decoration: none;
       border: 1px solid #ddd;
       border-radius: 4px;
       cursor: pointer;
@@ -134,56 +166,217 @@
     }
 
     /* 오른쪽 지도 영역 */
-    #map {
+    #mapArea {
+      position: relative;
       flex: 1;
       height: 100%;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 로드뷰 패널 (지도 아래쪽에 겹쳐서 표시) */
+    #roadviewPanel {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 50%;
+      z-index: 10;
+      background: #000;
+      border-top: 3px solid #2563eb;
+    }
+
+    #roadviewPanel.visible {
+      display: block;
+    }
+
+    #roadview {
+      width: 100%;
+      height: 100%;
+    }
+
+    #roadviewClose {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 11;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #fff;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #roadviewMessage {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    /* 마커 팝업 (말풍선) 안쪽 스타일 */
+    .popup {
+      width: 250px;
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .popup-title {
+      font-size: 15px;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    .popup-address {
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .popup-hours {
+      color: #444;
+      margin-bottom: 8px;
+    }
+
+    .popup-section {
+      margin-top: 8px;
+      font-weight: bold;
+    }
+
+    .stall-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .stall {
+      width: 24px;
+      height: 24px;
+      line-height: 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #fff;
+      border-radius: 4px;
+    }
+
+    .stall.free {
+      background: #22c55e;
+    }
+
+    .stall.busy {
+      background: #ef4444;
+    }
+
+    .popup-note {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #999;
+    }
+
+    .popup-roadview {
+      width: 100%;
+      margin-top: 8px;
+      padding: 8px;
+      font-size: 13px;
+      color: #fff;
+      background: #2563eb;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
 
   <div id="container">
-    <!-- 왼쪽: 검색창 + 결과 리스트 -->
+    <!-- 왼쪽: 탭 + 검색창 + 결과 리스트 -->
     <div id="sidebar">
+      <div id="tabBar">
+        <button class="tab-button active" id="tabGoyang">고양시 확인</button>
+        <button class="tab-button" id="tabRegion">지역명으로 검색</button>
+      </div>
+
+      <!-- 탭 2 에서만 보이는 검색창 -->
       <div id="searchForm">
-        <input id="keywordInput" type="text" placeholder="장소를 검색해 보세요 (예: 카페)">
+        <input id="regionInput" type="text" placeholder="지역명 입력 (예: 강남역)">
         <button id="searchButton">검색</button>
       </div>
+
       <ul id="resultList">
-        <li class="message">검색어를 입력하고 검색 버튼을 눌러 보세요.</li>
+        <li class="message">위치를 확인하는 중이에요...</li>
       </ul>
       <div id="pagination"></div>
     </div>
 
-    <!-- 오른쪽: 지도 -->
-    <div id="map"></div>
+    <!-- 오른쪽: 지도 + 로드뷰 -->
+    <div id="mapArea">
+      <div id="map"></div>
+      <div id="roadviewPanel">
+        <button id="roadviewClose">로드뷰 닫기 ✕</button>
+        <div id="roadviewMessage"></div>
+        <div id="roadview"></div>
+      </div>
+    </div>
   </div>
 
   <!--
     카카오 지도 SDK
-    - autoload=false : SDK가 자동으로 실행되지 않게 하고, 아래에서 kakao.maps.load()로 직접 실행
-    - libraries=services : 장소 검색 기능을 쓰기 위해 필요
+    - autoload=false : 아래에서 kakao.maps.load()로 직접 실행 (로딩 오류 방지)
+    - libraries=services : 장소 검색 기능에 필요
   -->
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=654464dfc5d446f2196b6b0a69e4ba29&libraries=services&autoload=false"></script>
 
   <script>
+    // ============================================================
+    // 1. 데이터와 설정값
+    // ============================================================
+
+    // 고양시 공중화장실 데이터 (공중화장실현황 엑셀에서 추출)
+    // 순서: [이름, 주소, 위도, 경도, 남성 대변기 수, 여성 대변기 수, 개방시간]
+    // ※ 아래는 예시 2줄이에요. 전체 데이터는 파이썬 스크립트로 만들어 넣으세요.
+    var GOYANG_TOILETS = [
+      ["진원프라자", "경기도 고양시 일산동구 정발산로 27", 37.656938, 126.771836, 2, 2, ":~:"],
+      ["웨스턴돔 타워", "경기도 고양시 일산동구 정발산로 24 (장항동, 웨스턴돔1)", 37.655893, 126.771971, 2, 3, "24시간"]
+    ];
+
     // 지도 레벨 (숫자가 작을수록 확대됨)
     var MAP_LEVEL = 5;
 
-    // 위치 권한을 못 받았을 때 사용할 기본 위치 (고양시청 근처)
+    // 위치 권한을 못 받았을 때 쓸 기본 위치 (고양시청 근처)
     var DEFAULT_LAT = 37.6584;
     var DEFAULT_LNG = 126.8320;
 
-    // 전역으로 쓸 변수들
+    // 탭 1에서 보여줄 가까운 화장실 개수
+    var NEARBY_COUNT = 30;
+
+    // ============================================================
+    // 2. 전역 변수
+    // ============================================================
     var map = null;              // 지도 객체
     var placesService = null;    // 장소 검색 객체
     var infoWindow = null;       // 마커 클릭 시 뜨는 말풍선
+    var roadview = null;         // 로드뷰 객체
+    var roadviewClient = null;   // 로드뷰 위치 찾기 객체
     var markers = [];            // 지도 위의 마커 목록
     var currentPosition = null;  // 현재 위치 (kakao.maps.LatLng)
+    var currentTab = "goyang";   // 현재 선택된 탭 ("goyang" 또는 "region")
+    var searchCounter = 0;       // 탭을 빨리 바꿀 때 이전 결과가 섞이지 않게 막는 번호
 
-    // 카카오 SDK가 완전히 로드된 뒤에 실행 (로딩 오류 방지)
-    // SDK 파일 자체를 못 불러오면 kakao 변수가 생기지 않아요. 먼저 확인!
+    // ============================================================
+    // 3. 시작: SDK가 완전히 로드된 뒤에 실행
+    // ============================================================
     if (typeof kakao === "undefined") {
+      // SDK 파일 자체를 못 불러온 경우 안내
       document.getElementById("map").innerHTML =
         "<p style='padding:20px;color:#c00;'>카카오 SDK를 불러오지 못했어요.<br>" +
         "1) 카카오 디벨로퍼스에 Web 도메인 등록<br>" +
@@ -195,197 +388,440 @@
       });
     }
 
-    // 지도 초기화 함수
+    // 지도 초기화
     function initMap() {
-      var mapContainer = document.getElementById("map");
-
-      // 일단 기본 위치로 지도를 먼저 만든다
       var defaultPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
-      map = new kakao.maps.Map(mapContainer, {
+
+      map = new kakao.maps.Map(document.getElementById("map"), {
         center: defaultPosition,
         level: MAP_LEVEL
       });
 
-      // 장소 검색 객체와 말풍선 객체 생성
       placesService = new kakao.maps.services.Places();
-      infoWindow = new kakao.maps.InfoWindow({ zIndex: 1 });
+      infoWindow = new kakao.maps.InfoWindow({ zIndex: 5, removable: true });
+      roadviewClient = new kakao.maps.RoadviewClient();
+      roadview = new kakao.maps.Roadview(document.getElementById("roadview"));
 
       // 이벤트 연결
-      document.getElementById("searchButton").addEventListener("click", searchPlaces);
-      document.getElementById("keywordInput").addEventListener("keydown", function (event) {
+      document.getElementById("tabGoyang").addEventListener("click", function () {
+        switchTab("goyang");
+      });
+      document.getElementById("tabRegion").addEventListener("click", function () {
+        switchTab("region");
+      });
+      document.getElementById("searchButton").addEventListener("click", searchRegion);
+      document.getElementById("regionInput").addEventListener("keydown", function (event) {
         if (event.key === "Enter") {
-          searchPlaces();
+          searchRegion();
         }
       });
+      document.getElementById("roadviewClose").addEventListener("click", closeRoadview);
 
-      // 현재 위치 요청
+      // 현재 위치를 요청한 뒤 탭 1 결과를 보여줌
       requestCurrentLocation();
     }
 
-    // 현재 위치를 가져와서 지도 중심으로 이동
+    // ============================================================
+    // 4. 현재 위치
+    // ============================================================
     function requestCurrentLocation() {
-      // 브라우저가 위치 기능을 지원하지 않는 경우
+      // 위치 기능을 지원하지 않는 브라우저
       if (!navigator.geolocation) {
         currentPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
+        switchTab("goyang");
         return;
       }
 
       navigator.geolocation.getCurrentPosition(
         // 성공했을 때
         function (position) {
-          var lat = position.coords.latitude;
-          var lng = position.coords.longitude;
-          currentPosition = new kakao.maps.LatLng(lat, lng);
-
-          // 지도 중심을 현재 위치로 이동하고 레벨 5로 맞춤
+          currentPosition = new kakao.maps.LatLng(
+            position.coords.latitude,
+            position.coords.longitude
+          );
           map.setLevel(MAP_LEVEL);
           map.setCenter(currentPosition);
-
-          // 현재 위치에 마커 표시
-          new kakao.maps.Marker({
-            map: map,
-            position: currentPosition
-          });
+          switchTab("goyang");
         },
         // 실패했을 때 (권한 거부 등)
         function (error) {
           console.log("위치 정보를 가져오지 못했어요:", error.message);
           currentPosition = new kakao.maps.LatLng(DEFAULT_LAT, DEFAULT_LNG);
           alert("위치 권한이 없어서 기본 위치(고양시)로 표시할게요.");
+          switchTab("goyang");
         }
       );
     }
 
-    // 장소 검색 함수
-    function searchPlaces() {
-      var keyword = document.getElementById("keywordInput").value.trim();
+    // ============================================================
+    // 5. 탭 전환
+    // ============================================================
+    function switchTab(tabName) {
+      currentTab = tabName;
+      searchCounter++;
 
-      if (keyword === "") {
-        alert("검색어를 입력해 주세요!");
-        return;
-      }
+      // 탭 버튼 모양 바꾸기
+      document.getElementById("tabGoyang").classList.toggle("active", tabName === "goyang");
+      document.getElementById("tabRegion").classList.toggle("active", tabName === "region");
 
-      // 현재 위치가 있으면 가까운 순으로 검색
-      var searchOptions = {};
-      if (currentPosition) {
-        searchOptions.location = currentPosition;
-        searchOptions.sort = kakao.maps.services.SortBy.DISTANCE;
-      }
+      // 지역명 검색창은 탭 2에서만 보이게
+      document.getElementById("searchForm").classList.toggle("visible", tabName === "region");
 
-      placesService.keywordSearch(keyword, handleSearchResult, searchOptions);
-    }
+      // 기존 마커, 리스트, 말풍선, 로드뷰를 모두 지움
+      clearAll();
 
-    // 검색 결과를 받았을 때 실행되는 함수
-    function handleSearchResult(data, status, pagination) {
-      if (status === kakao.maps.services.Status.OK) {
-        showPlaces(data);
-        showPagination(pagination);
-      } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
-        showMessage("검색 결과가 없어요.");
+      if (tabName === "goyang") {
+        showNearbyGoyangToilets();
       } else {
-        showMessage("검색 중 오류가 발생했어요.");
+        showMessage("지역명을 입력하고 검색 버튼을 눌러 보세요.");
+        document.getElementById("regionInput").focus();
       }
     }
 
-    // 검색 결과를 리스트와 지도에 표시
-    function showPlaces(places) {
-      var resultList = document.getElementById("resultList");
-      var bounds = new kakao.maps.LatLngBounds();
-
-      // 이전 결과 지우기
-      resultList.innerHTML = "";
-      removeMarkers();
-
-      for (var i = 0; i < places.length; i++) {
-        var place = places[i];
-        var position = new kakao.maps.LatLng(place.y, place.x);
-
-        var marker = addMarker(position);
-        var listItem = createListItem(place);
-
-        bindPlaceEvents(marker, listItem, place, position);
-
-        resultList.appendChild(listItem);
-        bounds.extend(position);
-      }
-
-      // 검색된 모든 장소가 보이도록 지도 범위 조정
-      map.setBounds(bounds);
-      resultList.scrollTop = 0;
-    }
-
-    // 리스트 항목(li) 만들기
-    // textContent를 쓰면 이상한 코드가 들어와도 안전해요
-    function createListItem(place) {
-      var li = document.createElement("li");
-
-      var nameDiv = document.createElement("div");
-      nameDiv.className = "place-name";
-      nameDiv.textContent = place.place_name;
-
-      var addressDiv = document.createElement("div");
-      addressDiv.className = "place-address";
-      addressDiv.textContent = place.road_address_name || place.address_name;
-
-      li.appendChild(nameDiv);
-      li.appendChild(addressDiv);
-
-      if (place.phone) {
-        var phoneDiv = document.createElement("div");
-        phoneDiv.className = "place-phone";
-        phoneDiv.textContent = place.phone;
-        li.appendChild(phoneDiv);
-      }
-
-      return li;
-    }
-
-    // 마커와 리스트 항목에 클릭 이벤트 연결
-    function bindPlaceEvents(marker, listItem, place, position) {
-      // 말풍선을 보여주는 함수
-      function openInfoWindow() {
-        var content = document.createElement("div");
-        content.style.padding = "6px 10px";
-        content.style.fontSize = "13px";
-        content.textContent = place.place_name;
-
-        infoWindow.setContent(content);
-        infoWindow.open(map, marker);
-      }
-
-      // 마커를 클릭하면 말풍선 표시
-      kakao.maps.event.addListener(marker, "click", openInfoWindow);
-
-      // 리스트를 클릭하면 해당 장소로 이동 + 말풍선 표시
-      listItem.addEventListener("click", function () {
-        map.panTo(position);
-        openInfoWindow();
-      });
-    }
-
-    // 마커 추가
-    function addMarker(position) {
-      var marker = new kakao.maps.Marker({
-        map: map,
-        position: position
-      });
-      markers.push(marker);
-      return marker;
-    }
-
-    // 기존 마커 모두 제거
-    function removeMarkers() {
+    // 마커, 리스트, 페이지 번호, 말풍선, 로드뷰 모두 지우기
+    function clearAll() {
       for (var i = 0; i < markers.length; i++) {
         markers[i].setMap(null);
       }
       markers = [];
       infoWindow.close();
+      closeRoadview();
+      document.getElementById("resultList").innerHTML = "";
+      document.getElementById("pagination").innerHTML = "";
     }
 
-    // 페이지 번호 표시
+    // ============================================================
+    // 6. 탭 1: 내 위치 주변의 고양시 화장실 (엑셀 데이터)
+    // ============================================================
+    function showNearbyGoyangToilets() {
+      if (!currentPosition) {
+        showMessage("위치를 확인하는 중이에요...");
+        return;
+      }
+
+      var myLat = currentPosition.getLat();
+      var myLng = currentPosition.getLng();
+
+      // 각 화장실까지의 거리를 계산해서 가까운 순으로 정렬
+      var withDistance = GOYANG_TOILETS.map(function (toilet) {
+        return {
+          data: toilet,
+          distance: calcDistance(myLat, myLng, toilet[2], toilet[3])
+        };
+      });
+
+      withDistance.sort(function (a, b) {
+        return a.distance - b.distance;
+      });
+
+      var nearby = withDistance.slice(0, NEARBY_COUNT);
+      var bounds = new kakao.maps.LatLngBounds();
+      bounds.extend(currentPosition);
+
+      for (var i = 0; i < nearby.length; i++) {
+        var item = nearby[i];
+        var place = {
+          name: item.data[0],
+          address: item.data[1],
+          lat: item.data[2],
+          lng: item.data[3],
+          maleStalls: item.data[4],
+          femaleStalls: item.data[5],
+          hours: item.data[6],
+          distance: item.distance
+        };
+        addPlace(place, bounds);
+      }
+
+      map.setBounds(bounds);
+    }
+
+    // 두 지점 사이의 거리를 m 단위로 계산 (하버사인 공식)
+    function calcDistance(lat1, lng1, lat2, lng2) {
+      var earthRadius = 6371000;
+      var toRad = Math.PI / 180;
+      var dLat = (lat2 - lat1) * toRad;
+      var dLng = (lng2 - lng1) * toRad;
+      var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // 거리를 보기 좋은 글자로 바꾸기
+    function formatDistance(meters) {
+      if (meters < 1000) {
+        return Math.round(meters) + "m";
+      }
+      return (meters / 1000).toFixed(1) + "km";
+    }
+
+    // ============================================================
+    // 7. 탭 2: 지역명으로 검색 (카카오 장소 검색)
+    // ============================================================
+    function searchRegion() {
+      var region = document.getElementById("regionInput").value.trim();
+
+      if (region === "") {
+        alert("지역명을 입력해 주세요!");
+        return;
+      }
+
+      clearAll();
+      searchCounter++;
+      var myCounter = searchCounter;
+
+      // 카카오 키워드 검색: "지역명 + 공중화장실"
+      placesService.keywordSearch(
+        region + " 공중화장실",
+        function (data, status, pagination) {
+          // 검색 중에 탭을 바꿨다면 결과를 버림
+          if (myCounter !== searchCounter || currentTab !== "region") {
+            return;
+          }
+          handleRegionResult(data, status, pagination);
+        }
+      );
+    }
+
+    // 지역 검색 결과 처리
+    function handleRegionResult(data, status, pagination) {
+      if (status === kakao.maps.services.Status.ZERO_RESULT) {
+        showMessage("검색 결과가 없어요.");
+        return;
+      }
+      if (status !== kakao.maps.services.Status.OK) {
+        showMessage("검색 중 오류가 발생했어요.");
+        return;
+      }
+
+      // 페이지를 넘길 때는 이전 페이지 마커와 리스트만 지움
+      clearMarkersAndList();
+
+      var bounds = new kakao.maps.LatLngBounds();
+
+      for (var i = 0; i < data.length; i++) {
+        var place = {
+          name: data[i].place_name,
+          address: data[i].road_address_name || data[i].address_name,
+          lat: parseFloat(data[i].y),
+          lng: parseFloat(data[i].x),
+          maleStalls: 0,      // 0 이면 시뮬레이션에서 임의로 정함
+          femaleStalls: 0,
+          hours: "",
+          distance: null
+        };
+        addPlace(place, bounds);
+      }
+
+      map.setBounds(bounds);
+      showPagination(pagination);
+    }
+
+    // 마커와 리스트만 지우기 (페이지 번호는 유지)
+    function clearMarkersAndList() {
+      for (var i = 0; i < markers.length; i++) {
+        markers[i].setMap(null);
+      }
+      markers = [];
+      infoWindow.close();
+      document.getElementById("resultList").innerHTML = "";
+    }
+
+    // ============================================================
+    // 8. 장소 하나를 지도(마커)와 리스트에 추가
+    // ============================================================
+    function addPlace(place, bounds) {
+      var position = new kakao.maps.LatLng(place.lat, place.lng);
+
+      var marker = new kakao.maps.Marker({
+        map: map,
+        position: position
+      });
+      markers.push(marker);
+      bounds.extend(position);
+
+      // 왼쪽 리스트 항목 만들기
+      // textContent 를 쓰면 이상한 코드가 들어와도 안전해요
+      var listItem = document.createElement("li");
+
+      var nameDiv = document.createElement("div");
+      nameDiv.className = "place-name";
+      nameDiv.textContent = place.name;
+      listItem.appendChild(nameDiv);
+
+      var addressDiv = document.createElement("div");
+      addressDiv.className = "place-address";
+      addressDiv.textContent = place.address;
+      listItem.appendChild(addressDiv);
+
+      if (place.distance !== null) {
+        var distanceDiv = document.createElement("div");
+        distanceDiv.className = "place-extra";
+        distanceDiv.textContent = "내 위치에서 " + formatDistance(place.distance);
+        listItem.appendChild(distanceDiv);
+      }
+
+      document.getElementById("resultList").appendChild(listItem);
+
+      // 마커를 누르면 팝업, 리스트를 누르면 이동 + 팝업
+      kakao.maps.event.addListener(marker, "click", function () {
+        openPopup(place, marker, position);
+      });
+
+      listItem.addEventListener("click", function () {
+        map.panTo(position);
+        openPopup(place, marker, position);
+      });
+    }
+
+    // ============================================================
+    // 9. 마커 팝업 (이름, 주소, 변기 사용 가능 여부 시뮬레이션)
+    // ============================================================
+    function openPopup(place, marker, position) {
+      var popup = document.createElement("div");
+      popup.className = "popup";
+
+      // 이름
+      var title = document.createElement("div");
+      title.className = "popup-title";
+      title.textContent = place.name;
+      popup.appendChild(title);
+
+      // 주소
+      var address = document.createElement("div");
+      address.className = "popup-address";
+      address.textContent = place.address;
+      popup.appendChild(address);
+
+      // 개방시간 (정보가 불확실하면 '알 수 없음')
+      var hours = document.createElement("div");
+      hours.className = "popup-hours";
+      hours.textContent = "개방시간: " + formatHours(place.hours);
+      popup.appendChild(hours);
+
+      // 변기 사용 가능 여부 시뮬레이션
+      var random = makeRandom(place.name + place.address);
+      var maleCount = place.maleStalls > 0 ? place.maleStalls : 2 + Math.floor(random() * 4);
+      var femaleCount = place.femaleStalls > 0 ? place.femaleStalls : 2 + Math.floor(random() * 4);
+
+      popup.appendChild(makeStallSection("남성 대변기", maleCount, random));
+      popup.appendChild(makeStallSection("여성 대변기", femaleCount, random));
+
+      // 안내 문구
+      var note = document.createElement("div");
+      note.className = "popup-note";
+      note.textContent = "※ 사용 가능 여부는 임의로 만든 시뮬레이션이에요. (초록: 사용 가능, 빨강: 사용 중)";
+      popup.appendChild(note);
+
+      // 로드뷰 버튼
+      var roadviewButton = document.createElement("button");
+      roadviewButton.className = "popup-roadview";
+      roadviewButton.textContent = "로드뷰 보기";
+      roadviewButton.addEventListener("click", function () {
+        openRoadview(position);
+      });
+      popup.appendChild(roadviewButton);
+
+      infoWindow.setContent(popup);
+      infoWindow.open(map, marker);
+    }
+
+    // 개방시간 글자 정리
+    function formatHours(hours) {
+      // 비어 있거나 ":~:" 처럼 의미 없는 값이면 알 수 없음
+      if (!hours || hours.replace(/[:~\s]/g, "") === "") {
+        return "알 수 없음";
+      }
+      return hours;
+    }
+
+    // 변기 칸 상자들을 만드는 함수
+    function makeStallSection(label, count, random) {
+      var wrapper = document.createElement("div");
+
+      var maxShown = 12;                     // 너무 많으면 12칸까지만 그림
+      var shownCount = Math.min(count, maxShown);
+      var freeCount = 0;
+      var row = document.createElement("div");
+      row.className = "stall-row";
+
+      for (var i = 1; i <= shownCount; i++) {
+        var isFree = random() > 0.45;        // 약 55% 확률로 사용 가능
+        if (isFree) {
+          freeCount++;
+        }
+
+        var stall = document.createElement("div");
+        stall.className = "stall " + (isFree ? "free" : "busy");
+        stall.textContent = i;
+        stall.title = i + "번 칸: " + (isFree ? "사용 가능" : "사용 중");
+        row.appendChild(stall);
+      }
+
+      var heading = document.createElement("div");
+      heading.className = "popup-section";
+      var suffix = count > maxShown ? " (총 " + count + "칸 중 " + maxShown + "칸 표시)" : "";
+      heading.textContent = label + ": " + freeCount + "/" + shownCount + " 사용 가능" + suffix;
+
+      wrapper.appendChild(heading);
+      wrapper.appendChild(row);
+      return wrapper;
+    }
+
+    // 장소 이름으로 같은 난수를 만드는 함수
+    // (같은 화장실은 팝업을 다시 열어도 같은 결과가 나오게 해요)
+    function makeRandom(seedText) {
+      var seed = 0;
+      for (var i = 0; i < seedText.length; i++) {
+        seed = (seed * 31 + seedText.charCodeAt(i)) % 2147483647;
+      }
+      return function () {
+        seed = (seed * 16807) % 2147483647;
+        return seed / 2147483647;
+      };
+    }
+
+    // ============================================================
+    // 10. 로드뷰
+    // ============================================================
+    function openRoadview(position) {
+      var panel = document.getElementById("roadviewPanel");
+      var message = document.getElementById("roadviewMessage");
+
+      panel.classList.add("visible");
+      message.textContent = "로드뷰를 불러오는 중...";
+
+      // 마커 근처 50m 안에서 가장 가까운 로드뷰 위치를 찾음
+      roadviewClient.getNearestPanoId(position, 50, function (panoId) {
+        if (panoId === null) {
+          message.textContent = "이 위치 근처에는 로드뷰가 없어요.";
+          return;
+        }
+        message.textContent = "";
+        roadview.setPanoId(panoId, position);
+        // 패널이 막 나타났을 때 크기를 다시 계산해 줘야 화면이 제대로 보여요
+        setTimeout(function () {
+          roadview.relayout();
+        }, 100);
+      });
+    }
+
+    function closeRoadview() {
+      document.getElementById("roadviewPanel").classList.remove("visible");
+      document.getElementById("roadviewMessage").textContent = "";
+    }
+
+    // ============================================================
+    // 11. 페이지 번호, 안내 메시지
+    // ============================================================
     function showPagination(pagination) {
       var paginationEl = document.getElementById("pagination");
       paginationEl.innerHTML = "";
+
+      if (pagination.last <= 1) {
+        return;
+      }
 
       for (var i = 1; i <= pagination.last; i++) {
         var link = document.createElement("a");
@@ -402,19 +838,16 @@
       }
     }
 
-    // 페이지 번호 클릭 시 해당 페이지로 이동하는 함수 만들기
     function makePageClickHandler(pagination, pageNumber) {
       return function () {
         pagination.gotoPage(pageNumber);
       };
     }
 
-    // 안내 메시지 표시
+    // 리스트 영역에 안내 메시지 표시
     function showMessage(text) {
       var resultList = document.getElementById("resultList");
       resultList.innerHTML = "";
-      removeMarkers();
-      document.getElementById("pagination").innerHTML = "";
 
       var li = document.createElement("li");
       li.className = "message";
@@ -424,3 +857,58 @@
   </script>
 </body>
 </html>
+
+import pandas as pd
+import json
+import re
+
+# 엑셀 읽기
+df = pd.read_excel("공중화장실현황_제공표준_.xls")
+
+# 고양시 화장실만 고르기
+road = df["소재지도로명주소"].fillna("")
+jibun = df["소재지지번주소"].fillna("")
+goyang = df[road.str.contains("고양시") | jibun.str.contains("고양시")].copy()
+
+# 좌표가 없는 곳 제외
+goyang = goyang.dropna(subset=["위도", "경도"])
+
+# 학교 제외
+school = re.compile(r"학교|초등|중학|고등|대학교|유치원")
+is_school = (
+    goyang["화장실명"].fillna("").str.contains(school)
+    | goyang["소재지지번주소"].fillna("").str.contains(school)
+    | goyang["관리기관명"].fillna("").str.contains(school)
+)
+goyang = goyang[~is_school]
+
+# 숫자로 바꾸는 함수 (빈 칸은 0)
+def to_number(value):
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return 0
+
+rows = []
+for _, row in goyang.iterrows():
+    male = (to_number(row["남성용-대변기수"])
+            + to_number(row["남성용-장애인용대변기수"])
+            + to_number(row["남성용-어린이용대변기수"]))
+    female = (to_number(row["여성용-대변기수"])
+              + to_number(row["여성용-장애인용대변기수"])
+              + to_number(row["여성용-어린이용대변기수"]))
+
+    address = row["소재지도로명주소"] if pd.notna(row["소재지도로명주소"]) else row["소재지지번주소"]
+    hours = row["개방시간"] if pd.notna(row["개방시간"]) else ""
+
+    rows.append([
+        str(row["화장실명"]), str(address),
+        round(float(row["위도"]), 6), round(float(row["경도"]), 6),
+        male, female, str(hours)
+    ])
+
+# JS 배열 형태로 저장
+with open("data.js", "w", encoding="utf-8") as f:
+    f.write(json.dumps(rows, ensure_ascii=False, separators=(",", ":")))
+
+print("저장한 화장실 수:", len(rows))
